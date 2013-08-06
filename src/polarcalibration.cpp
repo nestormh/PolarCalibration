@@ -43,8 +43,8 @@ void PolarCalibration::compute(const cv::Mat& img1distorted, const cv::Mat& img2
 
 void PolarCalibration::compute(/*const*/ cv::Mat& img1, /*const*/ cv::Mat& img2) {
     cv::Mat F;
-    cv::Point2d epipole1, epipole2;
-    findFundamentalMat(img1, img2, F, epipole1, epipole2);
+    cv::Point2d epipole1, epipole2, m;
+    findFundamentalMat(img1, img2, F, epipole1, epipole2, m);
     
     cout << "epipole1: " << epipole1 << endl;
     cout << "epipole2: " << epipole2 << endl;
@@ -53,12 +53,16 @@ void PolarCalibration::compute(/*const*/ cv::Mat& img1, /*const*/ cv::Mat& img2)
     // We look for epipolar lines
     vector<cv::Vec3f> epilines1, epilines2;
     vector<cv::Point2f> externalPoints1, externalPoints2;
-    computeEpilinesBasedOnCase(epipole1, cv::Size(img1.cols, img1.rows), F, 2, externalPoints1, epilines2);
-    computeEpilinesBasedOnCase(epipole2, cv::Size(img2.cols, img2.rows), F, 1, externalPoints2, epilines1);
+    computeEpilinesBasedOnCase(epipole1, cv::Size(img1.cols, img1.rows), F, 2, m, externalPoints1, epilines2);
+    computeEpilinesBasedOnCase(epipole2, cv::Size(img2.cols, img2.rows), F, 1, m, externalPoints2, epilines1);
     
-    double minTheta1, maxTheta1, minRho1, maxRho1;
-    double minTheta2, maxTheta2, minRho2, maxRho2;
-    determineCommonRegion(epipole1, cv::Size(img1.cols, img1.rows), externalPoints1, epilines2, minTheta1, maxTheta1);
+//     double minTheta1, maxTheta1, minRho1, maxRho1;
+//     double minTheta2, maxTheta2, minRho2, maxRho2;
+    vector<cv::Vec3f> initialEpilines, finalEpilines;
+    vector<cv::Point2f> epipoles(2);
+    epipoles[0] = epipole1;
+    epipoles[1] = epipole2;    
+    determineCommonRegion(epipoles, cv::Size(img1.cols, img1.rows), externalPoints1, epilines2, F, initialEpilines, finalEpilines);
     /*determineCommonRegion(epipole2, cv::Size(img2.cols, img2.rows), externalPoints2, epilines1, minTheta2, maxTheta2);
     
     determineRhoRange(epipole1, cv::Size(img1.cols, img1.rows), externalPoints1, epilines2, minRho1, maxRho1);
@@ -135,7 +139,7 @@ void PolarCalibration::compute(/*const*/ cv::Mat& img1, /*const*/ cv::Mat& img2)
 }
 
 void PolarCalibration::findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F, 
-                                          cv::Point2d & epipole1, cv::Point2d & epipole2) {
+                                          cv::Point2d & epipole1, cv::Point2d & epipole2, cv::Point2d & m) {
     
     // We look for correspondences using SURF
     
@@ -186,6 +190,8 @@ void PolarCalibration::findFundamentalMat(const cv::Mat & img1, const cv::Mat & 
     
     F = cv::findFundamentalMat(points1, points2, CV_FM_LMEDS);
     cout << "F:\n" << F << endl;
+    cv::Mat H = findHomography(points1, points2, CV_FM_LMEDS);
+    cout << "H:\n" << H << endl;    
     
     // We obtain the epipoles
     cv::SVD svd(F);
@@ -193,21 +199,15 @@ void PolarCalibration::findFundamentalMat(const cv::Mat & img1, const cv::Mat & 
     cv::Mat e1 = svd.vt.row(2);
     cv::Mat e2 = svd.u.col(2);
     
-//     cout << "u:\n" << svd.u << endl;
-//     cout << "vt:\n" << svd.vt << endl;
-//     cout << "w:\n" << svd.w << endl;
-//     //         cv::transpose(e2, e2);
-//     
-//     cout << "e1 = " << e1 << endl;
-//     cout << "e2 = " << e2 << endl;
-    
     epipole1 = cv::Point2d(e1.at<double>(0, 0) / e1.at<double>(0, 2), e1.at<double>(0, 1) / e1.at<double>(0, 2));
     epipole2 = cv::Point2d(e2.at<double>(0, 0) / e2.at<double>(2, 0), e2.at<double>(1, 0) / e2.at<double>(2, 0));
+    
+    m = points1[0];
 }
 
 void PolarCalibration::computeEpilinesBasedOnCase(const cv::Point2d &epipole, const cv::Size imgDimensions,
-                                const cv::Mat & F, const uint32_t & imgIdx,
-                                vector<cv::Point2f> &externalPoints, vector<cv::Vec3f> &epilines) {
+        const cv::Mat & F, const uint32_t & imgIdx, const cv::Point2d & m,
+        vector<cv::Point2f> &externalPoints, vector<cv::Vec3f> &epilines) {
 
     if (epipole.y < 0) { // Cases 1, 2 and 3
         if (epipole.x < 0) { // Case 1
@@ -396,49 +396,151 @@ void PolarCalibration::getThetaFromEpilines(/*const*/ cv::Point2d &epipole, cons
     }
 }
 
-void PolarCalibration::determineCommonRegion(/*const*/ cv::Point2d &epipole, const cv::Size imgDimensions,
-                                     const vector<cv::Point2f> &externalPoints, const vector<cv::Vec3f> &epilines,
-                                     double & minTheta, double & maxTheta) {
+/** Modified C++ version of the code found at 
+ * http://stackoverflow.com/questions/5514366/how-to-know-if-a-line-intersects-a-rectangle
+ * */
+bool PolarCalibration::lineIntersectsRect(const cv::Point2d & p1, const cv::Point2d & p2, const cv::Rect & r) {
+    return lineIntersectsLine(p1, p2, cv::Point2d(r.x, r.y), cv::Point2d(r.x + r.width, r.y)) ||
+    lineIntersectsLine(p1, p2, cv::Point2d(r.x + r.width, r.y), cv::Point2d(r.x + r.width, r.y + r.height)) ||
+    lineIntersectsLine(p1, p2, cv::Point2d(r.x + r.width, r.y + r.height), cv::Point2d(r.x, r.y + r.height)) ||
+    lineIntersectsLine(p1, p2, cv::Point2d(r.x, r.y + r.height), cv::Point2d(r.x, r.y)) ||
+    (r.contains(p1) && r.contains(p2));
+}
 
-    cout << "************** determineCommonRegion **************" << endl;
-
-    if (((uint32_t)epipole.x >= 0) && ((uint32_t)epipole.x < (uint32_t)imgDimensions.width) &&
-            ((uint32_t)epipole.x >= 0) && ((uint32_t)epipole.x < (uint32_t)imgDimensions.width)) {
-        
-        cout << externalPoints[0] << endl;
-        cout << externalPoints[1] << endl;
+bool PolarCalibration::lineIntersectsLine(const cv::Point2d & l1p1, const cv::Point2d & l1p2, 
+                                          const cv::Point2d & l2p1, const cv::Point2d & l2p2)
+{
+    float q = (l1p1.y - l2p1.y) * (l2p2.x - l2p1.x) - (l1p1.x - l2p1.x) * (l2p2.y - l2p1.y);
+    float d = (l1p2.x - l1p1.x) * (l2p2.y - l2p1.y) - (l1p2.y - l1p1.y) * (l2p2.x - l2p1.x);
     
-        cout << "minTheta: " << (externalPoints[0].y - epipole.y) << " / " << (externalPoints[0].x - epipole.x) << endl;
-        cout << "maxTheta: " << (externalPoints[1].y - epipole.y) << " / " << (externalPoints[1].x - epipole.x) << endl;
-        
-        minTheta = atan2((externalPoints[3].y - epipole.y), (externalPoints[3].x - epipole.x)) + 2 * CV_PI;
-        maxTheta = atan2((externalPoints[0].y - epipole.y), (externalPoints[0].x - epipole.x)) + 2 * CV_PI;
-        
-        cout << "minTheta " << minTheta * 180 / CV_PI << "(" << (minTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-        cout << "maxTheta " << maxTheta * 180 / CV_PI << "(" << (maxTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-    } else {
-        cout << externalPoints[0] << endl;
-        cout << externalPoints[1] << endl;
-
-        cout << "minTheta: " << (externalPoints[0].y - epipole.y) << " / " << (externalPoints[0].x - epipole.x) << endl;
-        cout << "maxTheta: " << (externalPoints[1].y - epipole.y) << " / " << (externalPoints[1].x - epipole.x) << endl;
-
-        minTheta = atan2((externalPoints[0].y - epipole.y), (externalPoints[0].x - epipole.x)) + 2 * CV_PI;
-        maxTheta = atan2((externalPoints[1].y - epipole.y), (externalPoints[1].x - epipole.x)) + 2 * CV_PI;
-
-        cout << "minTheta " << minTheta * 180 / CV_PI << "(" << (minTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-        cout << "maxTheta " << maxTheta * 180 / CV_PI << "(" << (maxTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-
-        double newTheta;
-        getThetaFromEpilines(epipole, imgDimensions, epilines, newTheta, minTheta, maxTheta);
-
-        cout << "minTheta " << minTheta * 180 / CV_PI << "(" << (minTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-        cout << "maxTheta " << maxTheta * 180 / CV_PI << "(" << (maxTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-        
+    if( d == 0 )
+    {
+        return false;
     }
+    
+    float r = q / d;
+    
+    q = (l1p1.y - l2p1.y) * (l1p2.x - l1p1.x) - (l1p1.x - l2p1.x) * (l1p2.y - l1p1.y);
+    float s = q / d;
+    
+    if( r < 0 || r > 1 || s < 0 || s > 1 )
+    {
+        return false;
+    }
+    
+    return true;
+}
+
+bool PolarCalibration::isInsideImage(const cv::Point2d & point, const cv::Size & imgDimensions) {
+    cv::Point2i p(point.x, point.y);
+    if ((p.x >= 0) && (p.y >= 0) &&
+        (p.x < imgDimensions.width) && (p.y < imgDimensions.height)) {
+            return true;
+    }
+    return false;
+}
+
+
+cv::Vec3f PolarCalibration::getLineFromTwoPoints(const cv::Point2d & point1, const cv::Point2d & point2) {
+    return cv::Vec3b(point2.y - point2.y, point1.x - point2.x, (point2.x - point1.x) * point1.y - (point2.y - point1.y) * point1.x);
+}
+
+void PolarCalibration::getExternalPoints(const cv::Point2d &epipole, const cv::Size imgDimensions,
+                                         vector<cv::Point2f> &externalPoints) {
+    
+    if (epipole.y < 0) { // Cases 1, 2 and 3
+        if (epipole.x < 0) { // Case 1
+            externalPoints.resize(2);
+            externalPoints[0] = cv::Point2f(imgDimensions.width - 1, 0);
+            externalPoints[1] = cv::Point2f(0, imgDimensions.height - 1);
+        } else if (epipole.x <= imgDimensions.width - 1) { // Case 2
+            externalPoints.resize(2);
+            externalPoints[0] = cv::Point2f(imgDimensions.width - 1, 0);
+            externalPoints[1] = cv::Point2f(0, 0);
+        } else { // Case 3
+            externalPoints.resize(2);
+            externalPoints[0] = cv::Point2f(imgDimensions.width - 1, imgDimensions.height - 1);
+            externalPoints[1] = cv::Point2f(0, 0);
+        }
+    } else if (epipole.y <= imgDimensions.height - 1) { // Cases 4, 5 and 6
+        if (epipole.x < 0) { // Case 4
+            externalPoints.resize(2);
+            externalPoints[0] = cv::Point2f(0, 0);
+            externalPoints[1] = cv::Point2f(0, imgDimensions.height - 1);
+        } else if (epipole.x <= imgDimensions.width - 1) { // Case 5
+            externalPoints.resize(4);
+            externalPoints[0] = cv::Point2f(0, 0);
+            externalPoints[1] = cv::Point2f(imgDimensions.width - 1, 0);
+            externalPoints[2] = cv::Point2f(imgDimensions.width - 1, imgDimensions.height - 1);
+            externalPoints[3] = cv::Point2f(0, imgDimensions.height - 1);
+        } else { // Case 6
+            externalPoints.resize(2);
+            externalPoints[0] = cv::Point2f(imgDimensions.width - 1, imgDimensions.height - 1);
+            externalPoints[1] = cv::Point2f(imgDimensions.width - 1, 0);
+        }
+    } else { // Cases 7, 8 and 9
+        if (epipole.x < 0) { // Case 7
+            externalPoints.resize(2);
+            externalPoints[0] = cv::Point2f(0, 0);
+            externalPoints[1] = cv::Point2f(imgDimensions.width - 1, imgDimensions.height - 1);
+        } else if (epipole.x <= imgDimensions.width - 1) { // Case 8
+            externalPoints.resize(2);
+            externalPoints[0] = cv::Point2f(0, imgDimensions.height - 1);
+            externalPoints[1] = cv::Point2f(imgDimensions.width - 1, imgDimensions.height - 1);
+        } else { // Case 9
+            externalPoints.resize(2);
+            externalPoints[0] = cv::Point2f(0, imgDimensions.height - 1);
+            externalPoints[1] = cv::Point2f(imgDimensions.width - 1, 0);
+        }
+    }
+}
+
+/**
+ * This function is more easily understandable after reading section 3.4 of 
+ * ftp://cmp.felk.cvut.cz/pub/cmp/articles/matousek/Sandr-TR-2009-04.pdf
+ * */
+void PolarCalibration::determineCommonRegion(/*const*/ vector<cv::Point2f> &epipoles, const cv::Size imgDimensions,
+                                            const vector<cv::Vec3f> &epilines, const cv::Mat & F,
+                                            vector<cv::Vec3f> & initialEpilines, vector<cv::Vec3f> & finalEpilines) {
+
+    cout << "************** determineCommonRegion **************" << endl;
+    vector<cv::Point2f> externalPoints1, externalPoints2;
+    getExternalPoints(epipoles[0], imgDimensions, externalPoints1);
+    getExternalPoints(epipoles[1], imgDimensions, externalPoints2);
+
+    if (!isInsideImage(epipoles[0], imgDimensions) && !isInsideImage(epipoles[1], imgDimensions)) {
+        cout << "CASE 1: Both outside" << endl;
+        cv::Vec3f line11 = getLineFromTwoPoints(epipoles[0], externalPoints1[0]);
+        cv::Vec3f line12 = getLineFromTwoPoints(epipoles[0], externalPoints1[1]);
+        
+        cv::Vec3f line23 = getLineFromTwoPoints(epipoles[1], externalPoints2[0]);
+        cv::Vec3f line24 = getLineFromTwoPoints(epipoles[1], externalPoints2[1]);
+        
+        // TODO Get l13, l14, l21, l22
+        
+    } else if (isInsideImage(epipoles[0], imgDimensions) && isInsideImage(epipoles[1], imgDimensions)) {
+        cout << "CASE 2: Both inside" << endl;
+        initialEpilines.resize(2);
+        initialEpilines[0] = getLineFromTwoPoints(epipoles[0], externalPoints1[0]);
+        
+        vector<cv::Vec3f> inputEpilines(1);
+        inputEpilines[0] = initialEpilines[0];
+        vector<cv::Vec3f> correspEpilines;
+        cv::computeCorrespondEpilines(inputEpilines, 2, F, correspEpilines);
+        
+        initialEpilines[1] = correspEpilines[0];
+        
+        finalEpilines.resize(2);
+        finalEpilines[0] = initialEpilines[0];
+        finalEpilines[1] = initialEpilines[1];
+    } else {
+        // TODO
+        cout << "This case has not been checked yet!!!" << endl;
+    }
+
     cout << "************** determineCommonRegion **************" << endl;
 
-    //     exit(0);
+    exit(0);
 }
 
 void PolarCalibration::determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,

@@ -37,7 +37,7 @@ public:
     void setHessianThresh(const uint32_t & hessianThresh) { m_hessianThresh = hessianThresh; }
 private:
     void computeEpilinesBasedOnCase(const cv::Point2d &epipole, const cv::Size imgDimensions,
-                                    const cv::Mat & F, const uint32_t & imgIdx,
+                                    const cv::Mat & F, const uint32_t & imgIdx, const cv::Point2d & m,
                                     vector<cv::Point2f> &externalPoints, vector<cv::Vec3f> &epilines);
 
     bool getThetaAB(cv::Point2d & epipole, const cv::Vec3f &epiline, const cv::Size &imgDimensions, double & newTheta);
@@ -46,9 +46,9 @@ private:
     bool getThetaAC(cv::Point2d & epipole, const cv::Vec3f &epiline, const cv::Size &imgDimensions, double & newTheta);
     void getThetaFromEpilines(/*const*/ cv::Point2d &epipole, const cv::Size imgDimensions,
                                         const vector<cv::Vec3f> &epilines, double & newTheta, double & minTheta, double & maxTheta);
-    void determineCommonRegion(/*const*/ cv::Point2d &epipole, const cv::Size imgDimensions,
-                                         const vector<cv::Point2f> &externalPoints, const vector<cv::Vec3f> &epilines,
-                                         double & minTheta, double & maxTheta);
+    void determineCommonRegion(/*const*/ vector<cv::Point2f> &epipoles, const cv::Size imgDimensions,
+                               const vector<cv::Vec3f> &epilines, const cv::Mat & F,
+                               vector<cv::Vec3f> & initialEpilines, vector<cv::Vec3f> & finalEpilines);
     void determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            const vector<cv::Point2f> &externalPoints, const vector<cv::Vec3f> &epilines,
                            double & minRho, double & maxRho);
@@ -60,7 +60,7 @@ private:
     void getLineFromAngle(/*const*/ cv::Point2d &epipole, /*const*/ double & theta,
                                     const cv::Size & imgDimensions, cv::Point2d & b, vector<cv::Vec3f> & line);
     void findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
-                            cv::Point2d & epipole1, cv::Point2d & epipole2);
+                            cv::Point2d & epipole1, cv::Point2d & epipole2, cv::Point2d & m);
     double getNextThetaIncrement(/*const*/ cv::Point2d &epipole, /*const*/ double & theta, /*const*/ double & maxRho,
                                     const cv::Size & imgDimensions);
     void doTransformation(/*const*/ cv::Point2d &epipole1, /*const*/ cv::Point2d &epipole2,
@@ -71,6 +71,13 @@ private:
                                     /*const*/ double & minRho1, /*const*/ double & minRho2,
                                     /*const*/ double & maxRho1, /*const*/ double & maxRho2,
                                     const cv::Mat & F);
+    bool isInsideImage(const cv::Point2d & point, const cv::Size & imgDimensions);
+    cv::Vec3f getLineFromTwoPoints(const cv::Point2d & point1, const cv::Point2d & point2);
+    void getExternalPoints(const cv::Point2d &epipole, const cv::Size imgDimensions,
+                           vector<cv::Point2f> &externalPoints);
+    bool lineIntersectsRect(const cv::Point2d & p1, const cv::Point2d & p2, const cv::Rect & r);
+    bool lineIntersectsLine(const cv::Point2d & l1p1, const cv::Point2d & l1p2, 
+                            const cv::Point2d & l2p1, const cv::Point2d & l2p2);
     
     uint32_t m_hessianThresh;
 };
