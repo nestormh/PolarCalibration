@@ -21,7 +21,7 @@
 #include "polarcalibration.h"
 
 PolarCalibration::PolarCalibration() {
-
+    m_hessianThresh = 50;
 }
 
 PolarCalibration::~PolarCalibration() {
@@ -42,112 +42,13 @@ void PolarCalibration::compute(const cv::Mat& img1distorted, const cv::Mat& img2
 }
 
 void PolarCalibration::compute(/*const*/ cv::Mat& img1, /*const*/ cv::Mat& img2) {
-    // We look for correspondences using SURF
-    
-    // vector of keypoints
-    vector<cv::KeyPoint> keypoints1, keypoints2;
-    
-    cv::SurfFeatureDetector surf(50);
-    surf.detect(img1, keypoints1);
-    surf.detect(img2, keypoints2);
-    
-    //         cv::Mat outImg1, outImg2;
-    //         cv::drawKeypoints(img1, keypoints1, outImg1, cv::Scalar(0,255,0), cv::DrawMatchesFlags::DEFAULT);
-    //         cv::drawKeypoints(img2, keypoints2, outImg2, cv::Scalar(0,255,0), cv::DrawMatchesFlags::DEFAULT);
-    //         cv::namedWindow("SURF detector img1");
-    //         cv::imshow("SURF detector img1", outImg1);
-    //         
-    //         cv::namedWindow("SURF detector img2");
-    //         cv::imshow("SURF detector img2", outImg2);
-    
-    // Descriptors are extracted
-    cv::SurfDescriptorExtractor surfDesc;
-    cv::Mat descriptors1, descriptors2;
-    surfDesc.compute(img1, keypoints1, descriptors1);
-    surfDesc.compute(img2, keypoints2, descriptors2);
-    
-    // Descriptors are matched
-    cv::FlannBasedMatcher matcher;
-    vector<cv::DMatch> matches;
-    //         vector < vector<cv::DMatch> > tmpMatches;
-    
-    matcher.match(descriptors1, descriptors2, matches);
-    //         matcher.radiusMatch(descriptors1, descriptors2, tmpMatches, 0.1f);
-    //         for (uint32_t i = 0; i < tmpMatches.size(); i++) {
-    //             matches.reserve(matches.size() + tmpMatches[i].size());
-    //             for (uint32_t j = 0; j < tmpMatches[i].size(); j++) {
-    //                 matches.push_back(tmpMatches[i][j]);
-    //             }
-    //         }
-    
-    nth_element(matches.begin(), matches.begin()+24, matches.end());
-    matches.erase(matches.begin()+25, matches.end());
-    
-    cv::Mat imageMatches;
-    cv::drawMatches(img1, keypoints1, img2, keypoints2, matches, imageMatches, cv::Scalar(0,0,255));        
-    cv::namedWindow("Matched");
-    cv::imshow("Matched", imageMatches);
-    
-    // Fundamental matrix is found
-    //         vector<cv::Point2f> points1(matches.size());
-    //         vector<cv::Point2f> points2(matches.size());
-    vector<cv::Point2f> points1, points2;
-    
-    points1.reserve(matches.size());
-    points2.reserve(matches.size());
-    
-    for (int idx = 0; idx < matches.size(); idx++) {
-        const cv::Point2f & p1 = keypoints1[matches[idx].queryIdx].pt;
-        const cv::Point2f & p2 = keypoints2[matches[idx].trainIdx].pt;
-        
-        if (fabs(p1.x - p2.x < 10.0) && fabs(p1.y - p2.y < 10.0)) {
-            points1.push_back(p1);
-            points2.push_back(p2);
-        }
-        //             points1[idx] = keypoints1[matches[idx].queryIdx].pt;
-        //             points2[idx] = keypoints2[matches[idx].trainIdx].pt;
-    }
-    
-    cout << "sz = " << points1.size() << endl;
-    
-    cv::Mat F = cv::findFundamentalMat(points1, points2, CV_FM_LMEDS);
-    cout << "F:\n" << F << endl;
-    
-    // We obtain the epipoles
-    cv::SVD svd(F);
-    
-    cv::Mat e1 = svd.vt.row(2);
-    cv::Mat e2 = svd.u.col(2);
-    
-    cout << "u:\n" << svd.u << endl;
-    cout << "vt:\n" << svd.vt << endl;
-    cout << "w:\n" << svd.w << endl;
-    //         cv::transpose(e2, e2);
-    
-    cout << "e1 = " << e1 << endl;
-    cout << "e2 = " << e2 << endl;
-    
-    //         cv::Mat Fe1, Fe2;
-    //         cv::multiply(F, e1.t(), Fe1);
-    //         cout << "Fe1\n" << F * e1.t() << endl;
-    //         cout << "e2TF\n" << e2.t() * F << endl;
-    //         cv::multiply(F, e2.t(), Fe2);
-    //         cout << "Fe2\n" << Fe2 << endl;
-    
-    //         exit(0);
-    
-    //         cout << F.mul(e1) << " --- " << F.mul(e2) << endl;
-    
-    
-    cv::Point2d epipole1 = cv::Point2d(e1.at<double>(0, 0) / e1.at<double>(0, 2), e1.at<double>(0, 1) / e1.at<double>(0, 2));
-    cv::Point2d epipole2 = cv::Point2d(e2.at<double>(0, 0) / e2.at<double>(2, 0), e2.at<double>(1, 0) / e2.at<double>(2, 0));
-    //         cv::Point2d epipole2 = cv::Point2d(e2.at<double>(0, 0) / e2.at<double>(0, 2), e2.at<double>(0, 1) / e2.at<double>(0, 2));
-    
-    //         epipole1 = cv::Point2d(70, 50);
+    cv::Mat F;
+    cv::Point2d epipole1, epipole2;
+    findFundamentalMat(img1, img2, F, epipole1, epipole2);
     
     cout << "epipole1: " << epipole1 << endl;
     cout << "epipole2: " << epipole2 << endl;
-    
+
     // Determine common region
     // We look for epipolar lines
     vector<cv::Vec3f> epilines1, epilines2;
@@ -158,7 +59,7 @@ void PolarCalibration::compute(/*const*/ cv::Mat& img1, /*const*/ cv::Mat& img2)
     double minTheta1, maxTheta1, minRho1, maxRho1;
     double minTheta2, maxTheta2, minRho2, maxRho2;
     determineCommonRegion(epipole1, cv::Size(img1.cols, img1.rows), externalPoints1, epilines2, minTheta1, maxTheta1);
-    determineCommonRegion(epipole2, cv::Size(img2.cols, img2.rows), externalPoints2, epilines1, minTheta2, maxTheta2);
+    /*determineCommonRegion(epipole2, cv::Size(img2.cols, img2.rows), externalPoints2, epilines1, minTheta2, maxTheta2);
     
     determineRhoRange(epipole1, cv::Size(img1.cols, img1.rows), externalPoints1, epilines2, minRho1, maxRho1);
     determineRhoRange(epipole2, cv::Size(img2.cols, img2.rows), externalPoints2, epilines1, minRho2, maxRho2);
@@ -178,7 +79,7 @@ void PolarCalibration::compute(/*const*/ cv::Mat& img1, /*const*/ cv::Mat& img2)
     cv::namedWindow("imgTransformed1");
     cv::imshow("imgTransformed1", imgTransformed1);
     cv::namedWindow("imgTransformed2");
-    cv::imshow("imgTransformed2", imgTransformed2);
+    cv::imshow("imgTransformed2", imgTransformed2);*/
     
     //         
     cv::Mat epipolarOutput1, epipolarOutput2;
@@ -231,6 +132,77 @@ void PolarCalibration::compute(/*const*/ cv::Mat& img1, /*const*/ cv::Mat& img2)
     //         cv::waitKey(0);
     
     //         break;
+}
+
+void PolarCalibration::findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F, 
+                                          cv::Point2d & epipole1, cv::Point2d & epipole2) {
+    
+    // We look for correspondences using SURF
+    
+    // vector of keypoints
+    vector<cv::KeyPoint> keypoints1, keypoints2;
+    
+    cv::SurfFeatureDetector surf(m_hessianThresh);
+    surf.detect(img1, keypoints1);
+    surf.detect(img2, keypoints2);
+    
+    // Descriptors are extracted
+    cv::SurfDescriptorExtractor surfDesc;
+    cv::Mat descriptors1, descriptors2;
+    surfDesc.compute(img1, keypoints1, descriptors1);
+    surfDesc.compute(img2, keypoints2, descriptors2);
+    
+    // Descriptors are matched
+    cv::FlannBasedMatcher matcher;
+    vector<cv::DMatch> matches;
+    
+    matcher.match(descriptors1, descriptors2, matches);
+    
+    nth_element(matches.begin(), matches.begin()+24, matches.end());
+    matches.erase(matches.begin()+25, matches.end());
+    
+    cv::Mat imageMatches;
+    cv::drawMatches(img1, keypoints1, img2, keypoints2, matches, imageMatches, cv::Scalar(0,0,255));        
+    cv::namedWindow("Matched");
+    cv::imshow("Matched", imageMatches);
+    
+    // Fundamental matrix is found
+    vector<cv::Point2f> points1, points2;
+    
+    points1.reserve(matches.size());
+    points2.reserve(matches.size());
+    
+    for (int idx = 0; idx < matches.size(); idx++) {
+        const cv::Point2f & p1 = keypoints1[matches[idx].queryIdx].pt;
+        const cv::Point2f & p2 = keypoints2[matches[idx].trainIdx].pt;
+        
+        if (fabs(p1.x - p2.x < 10.0) && fabs(p1.y - p2.y < 10.0)) {
+            points1.push_back(p1);
+            points2.push_back(p2);
+        }
+    }
+    
+    cout << "sz = " << points1.size() << endl;
+    
+    F = cv::findFundamentalMat(points1, points2, CV_FM_LMEDS);
+    cout << "F:\n" << F << endl;
+    
+    // We obtain the epipoles
+    cv::SVD svd(F);
+    
+    cv::Mat e1 = svd.vt.row(2);
+    cv::Mat e2 = svd.u.col(2);
+    
+//     cout << "u:\n" << svd.u << endl;
+//     cout << "vt:\n" << svd.vt << endl;
+//     cout << "w:\n" << svd.w << endl;
+//     //         cv::transpose(e2, e2);
+//     
+//     cout << "e1 = " << e1 << endl;
+//     cout << "e2 = " << e2 << endl;
+    
+    epipole1 = cv::Point2d(e1.at<double>(0, 0) / e1.at<double>(0, 2), e1.at<double>(0, 1) / e1.at<double>(0, 2));
+    epipole2 = cv::Point2d(e2.at<double>(0, 0) / e2.at<double>(2, 0), e2.at<double>(1, 0) / e2.at<double>(2, 0));
 }
 
 void PolarCalibration::computeEpilinesBasedOnCase(const cv::Point2d &epipole, const cv::Size imgDimensions,
@@ -430,24 +402,40 @@ void PolarCalibration::determineCommonRegion(/*const*/ cv::Point2d &epipole, con
 
     cout << "************** determineCommonRegion **************" << endl;
 
-    cout << externalPoints[0] << endl;
-    cout << externalPoints[1] << endl;
+    if (((uint32_t)epipole.x >= 0) && ((uint32_t)epipole.x < (uint32_t)imgDimensions.width) &&
+            ((uint32_t)epipole.x >= 0) && ((uint32_t)epipole.x < (uint32_t)imgDimensions.width)) {
+        
+        cout << externalPoints[0] << endl;
+        cout << externalPoints[1] << endl;
+    
+        cout << "minTheta: " << (externalPoints[0].y - epipole.y) << " / " << (externalPoints[0].x - epipole.x) << endl;
+        cout << "maxTheta: " << (externalPoints[1].y - epipole.y) << " / " << (externalPoints[1].x - epipole.x) << endl;
+        
+        minTheta = atan2((externalPoints[3].y - epipole.y), (externalPoints[3].x - epipole.x)) + 2 * CV_PI;
+        maxTheta = atan2((externalPoints[0].y - epipole.y), (externalPoints[0].x - epipole.x)) + 2 * CV_PI;
+        
+        cout << "minTheta " << minTheta * 180 / CV_PI << "(" << (minTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
+        cout << "maxTheta " << maxTheta * 180 / CV_PI << "(" << (maxTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
+    } else {
+        cout << externalPoints[0] << endl;
+        cout << externalPoints[1] << endl;
 
-    cout << "minTheta: " << (externalPoints[0].y - epipole.y) << " / " << (externalPoints[0].x - epipole.x) << endl;
-    cout << "maxTheta: " << (externalPoints[1].y - epipole.y) << " / " << (externalPoints[1].x - epipole.x) << endl;
+        cout << "minTheta: " << (externalPoints[0].y - epipole.y) << " / " << (externalPoints[0].x - epipole.x) << endl;
+        cout << "maxTheta: " << (externalPoints[1].y - epipole.y) << " / " << (externalPoints[1].x - epipole.x) << endl;
 
-    minTheta = atan2((externalPoints[0].y - epipole.y), (externalPoints[0].x - epipole.x)) + 2 * CV_PI;
-    maxTheta = atan2((externalPoints[1].y - epipole.y), (externalPoints[1].x - epipole.x)) + 2 * CV_PI;
+        minTheta = atan2((externalPoints[0].y - epipole.y), (externalPoints[0].x - epipole.x)) + 2 * CV_PI;
+        maxTheta = atan2((externalPoints[1].y - epipole.y), (externalPoints[1].x - epipole.x)) + 2 * CV_PI;
 
-    cout << "minTheta " << minTheta * 180 / CV_PI << "(" << (minTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-    cout << "maxTheta " << maxTheta * 180 / CV_PI << "(" << (maxTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
+        cout << "minTheta " << minTheta * 180 / CV_PI << "(" << (minTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
+        cout << "maxTheta " << maxTheta * 180 / CV_PI << "(" << (maxTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
 
-    double newTheta;
-    getThetaFromEpilines(epipole, imgDimensions, epilines, newTheta, minTheta, maxTheta);
+        double newTheta;
+        getThetaFromEpilines(epipole, imgDimensions, epilines, newTheta, minTheta, maxTheta);
 
-    cout << "minTheta " << minTheta * 180 / CV_PI << "(" << (minTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-    cout << "maxTheta " << maxTheta * 180 / CV_PI << "(" << (maxTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
-
+        cout << "minTheta " << minTheta * 180 / CV_PI << "(" << (minTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
+        cout << "maxTheta " << maxTheta * 180 / CV_PI << "(" << (maxTheta - 2 * CV_PI) * 180 / CV_PI << ")" << endl;
+        
+    }
     cout << "************** determineCommonRegion **************" << endl;
 
     //     exit(0);
@@ -761,7 +749,8 @@ else if (b.y == imgDimensions.height - 1) b1.x -= dist;
 double nextTheta = atan2((b1.y - epipole.y), (b1.x - epipole.x)) + 2.0 * CV_PI;
 //     cout << theta * 180.0 / CV_PI << " >>> " << nextTheta * 180.0 / CV_PI << endl;
 
-return nextTheta - theta;
+// return nextTheta - theta;
+return 0.001;
 
 //     exit(0);
                             }
@@ -828,7 +817,7 @@ void PolarCalibration::doTransformation(/*const*/ cv::Point2d &epipole1, /*const
 //         theta1 += thetaInc1;
 //         theta2 += thetaInc2;
 
-        cout << "Current Theta1 = " << theta1 * 180 / CV_PI << endl;
+        cout << "Current Theta1 = " << theta1 * 180 / CV_PI << " < " << maxTheta1 * 180 / CV_PI << endl;
         //         theta1 = newTheta;
         //TODO: Select the smaller increment
     }

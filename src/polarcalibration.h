@@ -33,6 +33,8 @@ public:
                  const cv::Mat & cameraMatrix1, const cv::Mat & distCoeffs1,
                  const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2);
     void compute(/*const*/ cv::Mat & img1, /*const*/ cv::Mat & img2);
+    
+    void setHessianThresh(const uint32_t & hessianThresh) { m_hessianThresh = hessianThresh; }
 private:
     void computeEpilinesBasedOnCase(const cv::Point2d &epipole, const cv::Size imgDimensions,
                                     const cv::Mat & F, const uint32_t & imgIdx,
@@ -57,6 +59,8 @@ private:
     void getLineFromPoints(const cv::Point2d & p1, const cv::Point2d & p2, vector<cv::Vec3f> & line);
     void getLineFromAngle(/*const*/ cv::Point2d &epipole, /*const*/ double & theta,
                                     const cv::Size & imgDimensions, cv::Point2d & b, vector<cv::Vec3f> & line);
+    void findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
+                            cv::Point2d & epipole1, cv::Point2d & epipole2);
     double getNextThetaIncrement(/*const*/ cv::Point2d &epipole, /*const*/ double & theta, /*const*/ double & maxRho,
                                     const cv::Size & imgDimensions);
     void doTransformation(/*const*/ cv::Point2d &epipole1, /*const*/ cv::Point2d &epipole2,
@@ -67,6 +71,8 @@ private:
                                     /*const*/ double & minRho1, /*const*/ double & minRho2,
                                     /*const*/ double & maxRho1, /*const*/ double & maxRho2,
                                     const cv::Mat & F);
+    
+    uint32_t m_hessianThresh;
 };
 
 #endif // POLARCALIBRATION_H
