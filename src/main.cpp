@@ -55,7 +55,8 @@ void getCalibrationMatrix(const boost::filesystem::path &filePath, cv::Mat & cam
 
 int main(int argc, char * argv[]) {
   
-    PolarCalibration calibrator;
+    
+    PolarCalibration calibrator;    
     for (uint32_t i = MIN_IDX; i < MAX_IDX; i++) {
         boost::filesystem::path img1Path(BASE_PATH);
         boost::filesystem::path img2Path(BASE_PATH);

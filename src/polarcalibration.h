@@ -29,10 +29,10 @@ class PolarCalibration
 public:
     PolarCalibration();
     ~PolarCalibration();
-    void compute(const cv::Mat& img1distorted, const cv::Mat& img2distorted,
+    bool compute(const cv::Mat& img1distorted, const cv::Mat& img2distorted,
                  const cv::Mat & cameraMatrix1, const cv::Mat & distCoeffs1,
                  const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2);
-    void compute(/*const*/ cv::Mat & img1, /*const*/ cv::Mat & img2);
+    bool compute(/*const*/ cv::Mat & img1, /*const*/ cv::Mat & img2);
     
     void setHessianThresh(const uint32_t & hessianThresh) { m_hessianThresh = hessianThresh; }
 private:
@@ -46,9 +46,8 @@ private:
     bool getThetaAC(cv::Point2d & epipole, const cv::Vec3f &epiline, const cv::Size &imgDimensions, double & newTheta);
     void getThetaFromEpilines(/*const*/ cv::Point2d &epipole, const cv::Size imgDimensions,
                                         const vector<cv::Vec3f> &epilines, double & newTheta, double & minTheta, double & maxTheta);
-    void determineCommonRegion(/*const*/ vector<cv::Point2f> &epipoles, const cv::Size imgDimensions,
-                               const vector<cv::Vec3f> &epilines, const cv::Mat & F,
-                               vector<cv::Vec3f> & initialEpilines, vector<cv::Vec3f> & finalEpilines);
+    void determineCommonRegion(/*const*/ vector<cv::Point2f> &epipoles, 
+                               const cv::Size imgDimensions, const cv::Mat & F);
     void determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            const vector<cv::Point2f> &externalPoints, const vector<cv::Vec3f> &epilines,
                            double & minRho, double & maxRho);
@@ -59,8 +58,10 @@ private:
     void getLineFromPoints(const cv::Point2d & p1, const cv::Point2d & p2, vector<cv::Vec3f> & line);
     void getLineFromAngle(/*const*/ cv::Point2d &epipole, /*const*/ double & theta,
                                     const cv::Size & imgDimensions, cv::Point2d & b, vector<cv::Vec3f> & line);
-    void findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
+    bool findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
                             cv::Point2d & epipole1, cv::Point2d & epipole2, cv::Point2d & m);
+    void getEpipoles(const cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2);
+    void checkF(cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2, const cv::Point2d & m, const cv::Point2d & m1);
     double getNextThetaIncrement(/*const*/ cv::Point2d &epipole, /*const*/ double & theta, /*const*/ double & maxRho,
                                     const cv::Size & imgDimensions);
     void doTransformation(/*const*/ cv::Point2d &epipole1, /*const*/ cv::Point2d &epipole2,
@@ -75,11 +76,19 @@ private:
     cv::Vec3f getLineFromTwoPoints(const cv::Point2d & point1, const cv::Point2d & point2);
     void getExternalPoints(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            vector<cv::Point2f> &externalPoints);
-    bool lineIntersectsRect(const cv::Point2d & p1, const cv::Point2d & p2, const cv::Rect & r);
-    bool lineIntersectsLine(const cv::Point2d & l1p1, const cv::Point2d & l1p2, 
-                            const cv::Point2d & l2p1, const cv::Point2d & l2p2);
+    bool lineIntersectsSegment(const cv::Vec3d & line, const cv::Point2d & p1, const cv::Point2d & p2);
+    bool lineIntersectsRect(const cv::Vec3d & line, const cv::Size & imgDimensions);
+    cv::Point2d image2World(const cv::Point2d & point, const cv::Size & imgDimensions);
+    cv::Point2d getPointFromLineAndX(const double & x, const cv::Vec3f line);
+    cv::Point2d getPointFromLineAndY(const double & y, const cv::Vec3f line);
+    void showCommonRegion(const cv::Point2d epipole, const cv::Vec3f & line11, const cv::Vec3f & line12,
+                          const cv::Vec3f & line13, const cv::Vec3f & line14, 
+                          const cv::Vec3f & lineB, const cv::Vec3f & lineE, const cv::Size & imgDimensions, 
+                          const vector<cv::Point2f> & externalPoints, std::string windowName);
     
     uint32_t m_hessianThresh;
+    
+    cv::Vec3f m_line1B, m_line1E, m_line2B, m_line2E;
 };
 
 #endif // POLARCALIBRATION_H

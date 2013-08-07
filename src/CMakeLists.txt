@@ -26,5 +26,9 @@ target_link_libraries(testPolarCalibration
 #   ${CGAL_CGAL_LIBRARY}
 #   ${GMP_LIBRARIES}
 #   ${CUDA_CURAND_LIBRARIES}
+#   ${OPENGL_LIBRARIES}
+#   ${GLUT_LIBRARIES}
 #   emon
 )
+
+message(OPENGL_LIBRARIES ${OPENGL_LIBRARIES})
