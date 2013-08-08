@@ -76,14 +76,19 @@ private:
     cv::Vec3f getLineFromTwoPoints(const cv::Point2d & point1, const cv::Point2d & point2);
     void getExternalPoints(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            vector<cv::Point2f> &externalPoints);
-    bool lineIntersectsSegment(const cv::Vec3d & line, const cv::Point2d & p1, const cv::Point2d & p2);
+    bool lineIntersectsSegment(const cv::Vec3d & line, const cv::Point2d & p1, const cv::Point2d & p2, cv::Point2d * intersection = NULL);
     bool lineIntersectsRect(const cv::Vec3d & line, const cv::Size & imgDimensions);
+    bool isTheRightPoint(const cv::Point2d & epipole, const cv::Point2d & intersection, const cv::Vec3d & line);
+    cv::Point2d getBorderIntersection(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions);        
     cv::Point2d image2World(const cv::Point2d & point, const cv::Size & imgDimensions);
     cv::Point2d getPointFromLineAndX(const double & x, const cv::Vec3f line);
     cv::Point2d getPointFromLineAndY(const double & y, const cv::Vec3f line);
+    void computeEpilines(const vector<cv::Point2f> & points, const uint32_t &whichImage, 
+                        const cv::Mat & F, const vector <cv::Vec3f> & oldlines, vector <cv::Vec3f> & newLines);
     void showCommonRegion(const cv::Point2d epipole, const cv::Vec3f & line11, const cv::Vec3f & line12,
                           const cv::Vec3f & line13, const cv::Vec3f & line14, 
-                          const cv::Vec3f & lineB, const cv::Vec3f & lineE, const cv::Size & imgDimensions, 
+                          const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
+                          const cv::Point2d & b, const cv::Size & imgDimensions, 
                           const vector<cv::Point2f> & externalPoints, std::string windowName);
     
     uint32_t m_hessianThresh;
