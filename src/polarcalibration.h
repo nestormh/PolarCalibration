@@ -24,6 +24,8 @@
 
 using namespace std;
 
+#define STEP_SIZE 50.0
+
 class PolarCalibration
 {
 public:
@@ -86,15 +88,29 @@ private:
     void computeEpilines(const vector<cv::Point2f> & points, const uint32_t &whichImage, 
                         const cv::Mat & F, const vector <cv::Vec3f> & oldlines, vector <cv::Vec3f> & newLines);
     bool sign(const double & val);
+    void getNewPointAndLineSingleImage(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
+                                       const cv::Mat & F, const uint32_t & whichImage, const cv::Point2d & pOld,
+                                        const cv::Vec3f & prevLine, cv::Point2d & pNew1, cv::Vec3f & newLine1, 
+                                        cv::Point2d & pNew2, cv::Vec3f & newLine2);
+    void getNewEpiline(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
+                       const cv::Mat & F, const cv::Point2d & pOld1, const cv::Point2d & pOld2, 
+                       const cv::Vec3f & prevLine1, const cv::Vec3f & prevLine2, 
+                       cv::Point2d & pNew1, cv::Point2d & pNew2, cv::Vec3f & newLine1, cv::Vec3f & newLine2);
+    bool isEndReached(const cv::Vec3f & currLine, const cv::Vec3f & endLine);
+    void doTransformation(const cv::Mat& img, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F);
     void showCommonRegion(const cv::Point2d epipole, const cv::Vec3f & line11, const cv::Vec3f & line12,
                           const cv::Vec3f & line13, const cv::Vec3f & line14, 
                           const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
                           const cv::Point2d & b, const cv::Size & imgDimensions, 
                           const vector<cv::Point2f> & externalPoints, std::string windowName);
+    void showNewEpiline(const cv::Point2d epipole, const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
+                        const cv::Vec3f & newLine, const cv::Point2d & pOld, const cv::Point2d & pNew, const cv::Size & imgDimensions, 
+                        std::string windowName);
     
     uint32_t m_hessianThresh;
     
     cv::Vec3f m_line1B, m_line1E, m_line2B, m_line2E;
+    cv::Point2d m_b1, m_b2;
 };
 
 #endif // POLARCALIBRATION_H
