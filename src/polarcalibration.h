@@ -85,6 +85,7 @@ private:
     cv::Point2d getPointFromLineAndY(const double & y, const cv::Vec3f line);
     void computeEpilines(const vector<cv::Point2f> & points, const uint32_t &whichImage, 
                         const cv::Mat & F, const vector <cv::Vec3f> & oldlines, vector <cv::Vec3f> & newLines);
+    bool sign(const double & val);
     void showCommonRegion(const cv::Point2d epipole, const cv::Vec3f & line11, const cv::Vec3f & line12,
                           const cv::Vec3f & line13, const cv::Vec3f & line14, 
                           const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
