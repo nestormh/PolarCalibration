@@ -81,7 +81,8 @@ private:
     bool lineIntersectsSegment(const cv::Vec3d & line, const cv::Point2d & p1, const cv::Point2d & p2, cv::Point2d * intersection = NULL);
     bool lineIntersectsRect(const cv::Vec3d & line, const cv::Size & imgDimensions);
     bool isTheRightPoint(const cv::Point2d & epipole, const cv::Point2d & intersection, const cv::Vec3d & line);
-    cv::Point2d getBorderIntersection(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions);        
+    bool isTheRightPoint(const cv::Point2d * lastPoint, const cv::Point2d & intersection);
+    cv::Point2d getBorderIntersection(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions, const cv::Point2d * lastPoint = NULL);        
     cv::Point2d image2World(const cv::Point2d & point, const cv::Size & imgDimensions);
     cv::Point2d getPointFromLineAndX(const double & x, const cv::Vec3f line);
     cv::Point2d getPointFromLineAndY(const double & y, const cv::Vec3f line);
@@ -90,11 +91,11 @@ private:
     bool sign(const double & val);
     void getNewPointAndLineSingleImage(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
                                        const cv::Mat & F, const uint32_t & whichImage, const cv::Point2d & pOld,
-                                        const cv::Vec3f & prevLine, cv::Point2d & pNew1, cv::Vec3f & newLine1, 
+                                        /*const*/ cv::Vec3f & prevLine, cv::Point2d & pNew1, cv::Vec3f & newLine1, 
                                         cv::Point2d & pNew2, cv::Vec3f & newLine2);
     void getNewEpiline(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
-                       const cv::Mat & F, const cv::Point2d & pOld1, const cv::Point2d & pOld2, 
-                       const cv::Vec3f & prevLine1, const cv::Vec3f & prevLine2, 
+                       const cv::Mat & F, const cv::Point2d pOld1, const cv::Point2d pOld2, 
+                       /*const*/ cv::Vec3f prevLine1, /*const*/ cv::Vec3f prevLine2, 
                        cv::Point2d & pNew1, cv::Point2d & pNew2, cv::Vec3f & newLine1, cv::Vec3f & newLine2);
     bool isEndReached(const cv::Vec3f & currLine, const cv::Vec3f & endLine);
     void doTransformation(const cv::Mat& img, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F);
