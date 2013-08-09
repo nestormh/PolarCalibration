@@ -24,7 +24,7 @@
 
 using namespace std;
 
-#define STEP_SIZE 50.0
+#define STEP_SIZE 10.0
 
 class PolarCalibration
 {
@@ -104,13 +104,14 @@ private:
                           const cv::Point2d & b, const cv::Size & imgDimensions, 
                           const vector<cv::Point2f> & externalPoints, std::string windowName);
     void showNewEpiline(const cv::Point2d epipole, const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
-                        const cv::Vec3f & newLine, const cv::Point2d & pOld, const cv::Point2d & pNew, const cv::Size & imgDimensions, 
-                        std::string windowName);
+                        const cv::Vec3f & newLine, const cv::Point2d & pOld, const cv::Point2d & pNew, 
+                        const cv::Size & imgDimensions, std::string windowName);
     
     uint32_t m_hessianThresh;
     
     cv::Vec3f m_line1B, m_line1E, m_line2B, m_line2E;
     cv::Point2d m_b1, m_b2;
+    double m_stepSize;
 };
 
 #endif // POLARCALIBRATION_H
