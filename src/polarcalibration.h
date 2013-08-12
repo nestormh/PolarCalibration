@@ -42,52 +42,25 @@ private:
                                     const cv::Mat & F, const uint32_t & imgIdx, const cv::Point2d & m,
                                     vector<cv::Point2f> &externalPoints, vector<cv::Vec3f> &epilines);
 
-    bool getThetaAB(cv::Point2d & epipole, const cv::Vec3f &epiline, const cv::Size &imgDimensions, double & newTheta);
-    bool getThetaCD(cv::Point2d & epipole, const cv::Vec3f &epiline, const cv::Size &imgDimensions, double & newTheta);
-    bool getThetaBD(cv::Point2d & epipole, const cv::Vec3f &epiline, const cv::Size &imgDimensions, double & newTheta);
-    bool getThetaAC(cv::Point2d & epipole, const cv::Vec3f &epiline, const cv::Size &imgDimensions, double & newTheta);
-    void getThetaFromEpilines(/*const*/ cv::Point2d &epipole, const cv::Size imgDimensions,
-                                        const vector<cv::Vec3f> &epilines, double & newTheta, double & minTheta, double & maxTheta);
     void determineCommonRegion(/*const*/ vector<cv::Point2f> &epipoles, 
                                const cv::Size imgDimensions, const cv::Mat & F);
     void determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            const vector<cv::Point2f> &externalPoints, const vector<cv::Vec3f> &epilines,
                            double & minRho, double & maxRho);
-    bool checkAB(const cv::Point2d &epipole, const double & theta, const cv::Size & imgDimensions, cv::Point2d & b);
-    bool checkCD(const cv::Point2d &epipole, const double & theta, const cv::Size & imgDimensions, cv::Point2d & b);
-    bool checkAC(const cv::Point2d &epipole, const double & theta, const cv::Size & imgDimensions, cv::Point2d & b);
-    bool checkBD(const cv::Point2d &epipole, const double & theta, const cv::Size & imgDimensions, cv::Point2d & b);
-    void getLineFromPoints(const cv::Point2d & p1, const cv::Point2d & p2, vector<cv::Vec3f> & line);
-    void getLineFromAngle(/*const*/ cv::Point2d &epipole, /*const*/ double & theta,
-                                    const cv::Size & imgDimensions, cv::Point2d & b, vector<cv::Vec3f> & line);
     bool findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
                             cv::Point2d & epipole1, cv::Point2d & epipole2, cv::Point2d & m);
     void getEpipoles(const cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2);
     void checkF(cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2, const cv::Point2d & m, const cv::Point2d & m1);
-    double getNextThetaIncrement(/*const*/ cv::Point2d &epipole, /*const*/ double & theta, /*const*/ double & maxRho,
-                                    const cv::Size & imgDimensions);
-    void doTransformation(/*const*/ cv::Point2d &epipole1, /*const*/ cv::Point2d &epipole2,
-                                    /*const*/ cv::Mat & imgInput1, /*const*/ cv::Mat & imgInput2,
-                                    cv::Mat & imgTransformed1, cv::Mat & imgTransformed2,
-                                    /*const*/ double & minTheta1, /*const*/ double & minTheta2,
-                                    /*const*/ double & maxTheta1, /*const*/ double & maxTheta2,
-                                    /*const*/ double & minRho1, /*const*/ double & minRho2,
-                                    /*const*/ double & maxRho1, /*const*/ double & maxRho2,
-                                    const cv::Mat & F);
     bool isInsideImage(const cv::Point2d & point, const cv::Size & imgDimensions);
     cv::Vec3f getLineFromTwoPoints(const cv::Point2d & point1, const cv::Point2d & point2);
     void getExternalPoints(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            vector<cv::Point2f> &externalPoints);
     bool lineIntersectsSegment(const cv::Vec3d & line, const cv::Point2d & p1, const cv::Point2d & p2, cv::Point2d * intersection = NULL);
     bool lineIntersectsRect(const cv::Vec3d & line, const cv::Size & imgDimensions);
-    bool isTheRightPoint(const cv::Point2d & epipole, const cv::Point2d & intersection, const cv::Vec3d & line);
     bool isTheRightPoint(const cv::Point2d & epipole, const cv::Point2d & intersection, const cv::Vec3d & line,
-                         const cv::Point2d * lastPoint, const cv::Point2d * pBegin);
+                         const cv::Point2d * lastPoint);
     cv::Point2d getBorderIntersection(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions, 
-                                      const cv::Point2d * lastPoint = NULL, const cv::Point2d * pBegin = NULL);        
-    cv::Point2d image2World(const cv::Point2d & point, const cv::Size & imgDimensions);
-    cv::Point2d getPointFromLineAndX(const double & x, const cv::Vec3f line);
-    cv::Point2d getPointFromLineAndY(const double & y, const cv::Vec3f line);
+                                      const cv::Point2d * lastPoint = NULL);        
     void computeEpilines(const vector<cv::Point2f> & points, const uint32_t &whichImage, 
                         const cv::Mat & F, const vector <cv::Vec3f> & oldlines, vector <cv::Vec3f> & newLines);
     bool sign(const double & val);
@@ -99,10 +72,13 @@ private:
                        const cv::Mat & F, const cv::Point2d pOld1, const cv::Point2d pOld2, 
                        /*const*/ cv::Vec3f prevLine1, /*const*/ cv::Vec3f prevLine2, 
                        cv::Point2d & pNew1, cv::Point2d & pNew2, cv::Vec3f & newLine1, cv::Vec3f & newLine2);
-    bool isEndReached(const cv::Vec3f & currLine, const cv::Vec3f & endLine);
     void transformLine(const cv::Point2d& epipole, const cv::Point2d& p2, const cv::Mat& inputImage, 
                        const uint32_t & thetaIdx, const double &minRho, const double & maxRho, cv::Mat& outputImage);
     void doTransformation(const cv::Mat& img1, const cv::Mat& img2, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F);
+    
+    // Visualization functions
+    cv::Point2d image2World(const cv::Point2d & point, const cv::Size & imgDimensions);
+    cv::Point2d getPointFromLineAndX(const double & x, const cv::Vec3f line);
     void showCommonRegion(const cv::Point2d epipole, const cv::Vec3f & line11, const cv::Vec3f & line12,
                           const cv::Vec3f & line13, const cv::Vec3f & line14, 
                           const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
@@ -119,6 +95,8 @@ private:
     double m_stepSize;
     
     double m_minRho1, m_maxRho1, m_minRho2, m_maxRho2;
+    
+    bool m_showCommonRegion, m_showIterations;
 };
 
 #endif // POLARCALIBRATION_H

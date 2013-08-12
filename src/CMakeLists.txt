@@ -2,6 +2,7 @@ add_executable(testPolarCalibration
     polarcalibration.cpp 
     main.cpp
     calibration.pb.cc
+    visualizePolarCalibration.cpp
 )
   
 include_directories(testPolarCalibration
