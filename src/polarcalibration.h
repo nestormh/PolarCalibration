@@ -24,7 +24,7 @@
 
 using namespace std;
 
-#define STEP_SIZE 10.0
+#define STEP_SIZE 1.0
 
 class PolarCalibration
 {
@@ -81,8 +81,10 @@ private:
     bool lineIntersectsSegment(const cv::Vec3d & line, const cv::Point2d & p1, const cv::Point2d & p2, cv::Point2d * intersection = NULL);
     bool lineIntersectsRect(const cv::Vec3d & line, const cv::Size & imgDimensions);
     bool isTheRightPoint(const cv::Point2d & epipole, const cv::Point2d & intersection, const cv::Vec3d & line);
-    bool isTheRightPoint(const cv::Point2d * lastPoint, const cv::Point2d & intersection);
-    cv::Point2d getBorderIntersection(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions, const cv::Point2d * lastPoint = NULL);        
+    bool isTheRightPoint(const cv::Point2d & epipole, const cv::Point2d & intersection, const cv::Vec3d & line,
+                         const cv::Point2d * lastPoint, const cv::Point2d * pBegin);
+    cv::Point2d getBorderIntersection(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions, 
+                                      const cv::Point2d * lastPoint = NULL, const cv::Point2d * pBegin = NULL);        
     cv::Point2d image2World(const cv::Point2d & point, const cv::Size & imgDimensions);
     cv::Point2d getPointFromLineAndX(const double & x, const cv::Vec3f line);
     cv::Point2d getPointFromLineAndY(const double & y, const cv::Vec3f line);
