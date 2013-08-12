@@ -115,7 +115,7 @@ private:
     uint32_t m_hessianThresh;
     
     cv::Vec3f m_line1B, m_line1E, m_line2B, m_line2E;
-    cv::Point2d m_b1, m_b2;
+    cv::Point2d m_b1, m_b2, m_e1, m_e2;
     double m_stepSize;
     
     double m_minRho1, m_maxRho1, m_minRho2, m_maxRho2;
