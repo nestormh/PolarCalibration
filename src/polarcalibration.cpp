@@ -53,8 +53,8 @@ bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2) {
     clock_t begin = clock();
     
     cv::Mat F;
-    cv::Point2d epipole1, epipole2, m;
-    if (! findFundamentalMat(img1, img2, F, epipole1, epipole2, m))
+    cv::Point2d epipole1, epipole2;
+    if (! findFundamentalMat(img1, img2, F, epipole1, epipole2, FMAT_METHOD_OFLOW))
         return false;
     
     clock_t end = clock();
@@ -82,8 +82,94 @@ bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2) {
     return true;
 }
 
-inline bool PolarCalibration::findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F, 
-                                          cv::Point2d & epipole1, cv::Point2d & epipole2, cv::Point2d & m) {
+inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& F, 
+                                                 cv::Point2d& epipole1, cv::Point2d& epipole2, const uint32_t method)
+{
+    vector<cv::Point2f> points1, points2;
+    
+    switch(method) {
+        case FMAT_METHOD_OFLOW:
+            findPairsOFlow(img1, img2, points1, points2);
+            break;
+        case FMAT_METHOD_SURF:
+            findPairsSURF(img1, img2, points1, points2);
+            break;
+    }
+    
+    if (points1.size() < 8)
+        return false;
+    
+    cout << "sz = " << points1.size() << endl;
+    
+    F = cv::findFundamentalMat(points1, points2, CV_FM_8POINT);
+    cout << "F:\n" << F << endl; 
+    
+    if (cv::countNonZero(F) == 0)
+        return false;
+    
+    // We obtain the epipoles
+    getEpipoles(F, epipole1, epipole2);
+    
+    checkF(F, epipole1, epipole2, points1[0], points2[0]);
+    
+    /// NOTE: Remove. Just for debugging (begin)
+    //     cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_B.xml", cv::FileStorage::READ);
+    //     file["F"] >> F;
+    //     file.release();
+    //     cout << "F (from file)\n" << F << endl;
+    //     getEpipoles(F, epipole1, epipole2);
+    /// NOTE: Remove. Just for debugging (end)
+    
+    return true;
+}
+
+inline void PolarCalibration::findPairsOFlow(const cv::Mat & img1, const cv::Mat & img2, 
+                                             vector<cv::Point2f> & outPoints1, vector<cv::Point2f> & outPoints2) {
+                                                
+    // We look for correspondences using Optical flow
+    // vector of keypoints
+    vector<cv::KeyPoint> keypoints1;
+    cv::FastFeatureDetector fastDetector(50);
+    fastDetector.detect(img1, keypoints1);
+    
+    if (keypoints1.size() == 0)
+        return;
+    
+    vector<cv::Point2f> points1(keypoints1.size()), points2;
+    {
+        uint32_t idx = 0;
+        for (vector<cv::KeyPoint>::iterator it = keypoints1.begin(); it != keypoints1.end(); it++, idx++) {
+            points1[idx] = it->pt;
+        }
+    }    
+    // Optical flow
+    vector<cv::Mat> pyramid2;
+    vector<uint8_t> status;
+    vector<float_t> error;
+    
+    cv::calcOpticalFlowPyrLK(img1, img2, points1, points2, status, error, cv::Size(3, 3), 3);
+    
+    vector<cv::Point2f> pointsA(points1.size()), pointsB(points2.size());
+    {
+        uint32_t idx = 0;
+        for (uint32_t i = 0; i < points1.size(); i++) {
+            if (status[i] == 1) {
+                pointsA[idx] = points1[i];
+                pointsB[idx] = points2[i];
+            }
+            idx++;
+        }
+        pointsA.resize(idx);
+        pointsB.resize(idx);
+    }
+    
+    outPoints1 = pointsA;
+    outPoints2 = pointsB;
+
+}
+
+inline void PolarCalibration::findPairsSURF(const cv::Mat & img1, const cv::Mat & img2,
+                                                     vector<cv::Point2f> & outPoints1, vector<cv::Point2f> & outPoints2) {
     
     // We look for correspondences using SURF
     
@@ -136,33 +222,8 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat & img1, const cv:
         points2.resize(idx2);
     }
     
-    if (points1.size() < 8)
-        return false;
-    
-    cout << "sz = " << points1.size() << endl;
-    
-    F = cv::findFundamentalMat(points1, points2, CV_FM_LMEDS);
-    cout << "F:\n" << F << endl; 
-    
-    if (cv::countNonZero(F) == 0)
-        return false;
-    
-    // We obtain the epipoles
-    getEpipoles(F, epipole1, epipole2);
-    
-    checkF(F, epipole1, epipole2, points1[0], points2[0]);
-        
-    /// NOTE: Remove. Just for debugging (begin)
-//     cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_B.xml", cv::FileStorage::READ);
-//     file["F"] >> F;
-//     file.release();
-//     cout << "F (from file)\n" << F << endl;
-//     getEpipoles(F, epipole1, epipole2);
-    /// NOTE: Remove. Just for debugging (end)
-    
-    m = points1[0];
-    
-    return true;
+    outPoints1 = points1;
+    outPoints2 = points2;
 }
 
 inline void PolarCalibration::getEpipoles(const cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2) {

@@ -39,8 +39,12 @@ using namespace std;
 class PolarCalibration
 {
 public:
+    static const uint32_t FMAT_METHOD_OFLOW=0;
+    static const uint32_t FMAT_METHOD_SURF=1;
+    
     PolarCalibration();
     ~PolarCalibration();
+    
     bool compute(const cv::Mat& img1distorted, const cv::Mat& img2distorted,
                  const cv::Mat & cameraMatrix1, const cv::Mat & distCoeffs1,
                  const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2);
@@ -56,16 +60,16 @@ public:
     cv::Mat getRectifiedImage1() { return m_rectified1; }
     cv::Mat getRectifiedImage2() { return m_rectified2; }
 private:
-    void computeEpilinesBasedOnCase(const cv::Point2d &epipole, const cv::Size imgDimensions,
-                                    const cv::Mat & F, const uint32_t & imgIdx, const cv::Point2d & m,
-                                    vector<cv::Point2f> &externalPoints, vector<cv::Vec3f> &epilines);
-
     void determineCommonRegion(const vector<cv::Point2f> &epipoles, 
                                const cv::Size imgDimensions, const cv::Mat & F);
     void determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            const vector<cv::Point2f> &externalPoints, double & minRho, double & maxRho);
     bool findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
-                            cv::Point2d & epipole1, cv::Point2d & epipole2, cv::Point2d & m);
+                                cv::Point2d & epipole1, cv::Point2d & epipole2, const uint32_t method = FMAT_METHOD_OFLOW);
+    void findPairsSURF(const cv::Mat & img1, const cv::Mat & img2,
+                        vector<cv::Point2f> & outPoints1, vector<cv::Point2f> & outPoints2);
+    void findPairsOFlow(const cv::Mat & img1, const cv::Mat & img2,
+                       vector<cv::Point2f> & outPoints1, vector<cv::Point2f> & outPoints2);
     void getEpipoles(const cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2);
     void checkF(cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2, const cv::Point2d & m, const cv::Point2d & m1);
     void getExternalPoints(const cv::Point2d &epipole, const cv::Size imgDimensions,

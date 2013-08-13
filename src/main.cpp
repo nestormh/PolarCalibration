@@ -116,12 +116,9 @@ int main(int argc, char * argv[]) {
         
         cv::imshow("showImg1", showImg1);
         cv::imshow("showImg2", showImg2);
-        cv::moveWindow("showImg2", 3 * (showImg1.cols), 0);
+        cv::moveWindow("showImg2", 700, 0);
         
         cv::waitKey(0);
-        
-        
-        
    }
   
   return 0;
