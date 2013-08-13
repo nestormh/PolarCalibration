@@ -26,6 +26,16 @@ using namespace std;
 
 #define STEP_SIZE 1.0
 
+#define SIGN(val) (bool)(val >= 0.0)
+
+#define IS_INSIDE_IMAGE(point, imgDimensions) \
+    (((uint32_t)point.x >= 0) && ((uint32_t)point.y >= 0) && \
+    ((uint32_t)point.x < imgDimensions.width) && ((uint32_t)point.y < imgDimensions.height))
+    
+// (py – qy)x + (qx – px)y + (pxqy – qxpy) = 0
+#define GET_LINE_FROM_POINTS(point1, point2) \
+    cv::Vec3f(point1.y - point2.y, point2.x - point1.x, point1.x * point2.y - point2.x * point1.y)
+
 class PolarCalibration
 {
 public:
@@ -37,6 +47,14 @@ public:
     bool compute(const cv::Mat & img1, const cv::Mat & img2);
     
     void setHessianThresh(const uint32_t & hessianThresh) { m_hessianThresh = hessianThresh; }
+    
+    void toggleShowCommonRegion(const bool & showCommonRegion) { m_showCommonRegion = showCommonRegion; }
+    void toggleShowIterations(const bool & showIterations) { m_showIterations = showIterations; }
+    
+    void getRectifiedImages(const cv::Mat & img1, const cv::Mat & img2, 
+                            cv::Mat & rectified1, cv::Mat & rectified2, int interpolation = cv::INTER_CUBIC);
+    cv::Mat getRectifiedImage1() { return m_rectified1; }
+    cv::Mat getRectifiedImage2() { return m_rectified2; }
 private:
     void computeEpilinesBasedOnCase(const cv::Point2d &epipole, const cv::Size imgDimensions,
                                     const cv::Mat & F, const uint32_t & imgIdx, const cv::Point2d & m,
@@ -50,8 +68,6 @@ private:
                             cv::Point2d & epipole1, cv::Point2d & epipole2, cv::Point2d & m);
     void getEpipoles(const cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2);
     void checkF(cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2, const cv::Point2d & m, const cv::Point2d & m1);
-    bool isInsideImage(const cv::Point2d & point, const cv::Size & imgDimensions);
-    cv::Vec3f getLineFromTwoPoints(const cv::Point2d & point1, const cv::Point2d & point2);
     void getExternalPoints(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            vector<cv::Point2f> &externalPoints);
     bool lineIntersectsSegment(const cv::Vec3d & line, const cv::Point2d & p1, const cv::Point2d & p2, cv::Point2d * intersection = NULL);
@@ -62,7 +78,6 @@ private:
                                       const cv::Point2d * lastPoint = NULL);        
     void computeEpilines(const vector<cv::Point2f> & points, const uint32_t &whichImage, 
                         const cv::Mat & F, const vector <cv::Vec3f> & oldlines, vector <cv::Vec3f> & newLines);
-    bool sign(const double & val);
     void getNewPointAndLineSingleImage(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
                                        const cv::Mat & F, const uint32_t & whichImage, const cv::Point2d & pOld1, const cv::Point2d & pOld2,
                                         cv::Vec3f & prevLine, cv::Point2d & pNew1, cv::Vec3f & newLine1, 
@@ -72,7 +87,7 @@ private:
                        cv::Vec3f prevLine1, cv::Vec3f prevLine2, 
                        cv::Point2d & pNew1, cv::Point2d & pNew2, cv::Vec3f & newLine1, cv::Vec3f & newLine2);
     void transformLine(const cv::Point2d& epipole, const cv::Point2d& p2, const cv::Mat& inputImage, 
-                       const uint32_t & thetaIdx, const double &minRho, const double & maxRho, cv::Mat& outputImage);
+                       const uint32_t & thetaIdx, const double &minRho, const double & maxRho, cv::Mat& mapX, cv::Mat& mapY);
     void doTransformation(const cv::Mat& img1, const cv::Mat& img2, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F);
     
     // Visualization functions
@@ -96,6 +111,9 @@ private:
     double m_minRho1, m_maxRho1, m_minRho2, m_maxRho2;
     
     bool m_showCommonRegion, m_showIterations;
+    
+    cv::Mat m_mapX1, m_mapY1, m_mapX2, m_mapY2;
+    cv::Mat m_rectified1, m_rectified2;
 };
 
 #endif // POLARCALIBRATION_H

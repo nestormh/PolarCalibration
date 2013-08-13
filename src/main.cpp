@@ -19,7 +19,7 @@ using namespace std;
 #define IMG2_PATH "seq03-img-right"
 #define FILE_STRING2 "image_%08d_1.png"
 #define CALIBRATION_STRING "cam%d.cal"
-#define MIN_IDX 120
+#define MIN_IDX 138 //120
 #define MAX_IDX 999
 
 // #define BASE_PATH "/local/imaged/stixels/castlejpg"
@@ -55,8 +55,14 @@ void getCalibrationMatrix(const boost::filesystem::path &filePath, cv::Mat & cam
 
 int main(int argc, char * argv[]) {
   
+    cv::Mat showImg1, showImg2;
     
-    PolarCalibration calibrator;    
+    cv::namedWindow("showImg1");
+    cv::namedWindow("showImg2");
+    
+    PolarCalibration calibrator;
+    calibrator.toggleShowCommonRegion(false);
+    calibrator.toggleShowIterations(false);
     for (uint32_t i = MIN_IDX; i < MAX_IDX; i++) {
         boost::filesystem::path img1Path(BASE_PATH);
         boost::filesystem::path img2Path(BASE_PATH);
@@ -94,7 +100,28 @@ int main(int argc, char * argv[]) {
         getCalibrationMatrix(calibrationPath1, cameraMatrix1, distCoeffs1);
         getCalibrationMatrix(calibrationPath2, cameraMatrix2, distCoeffs2);
 
-        calibrator.compute(img1distorted, img2distorted, cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2);
+        if (!calibrator.compute(img1distorted, img2distorted, cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2))
+            continue;
+        
+        // Visualization
+        cv::Mat rectified1 = calibrator.getRectifiedImage1();
+        cv::Mat rectified2 = calibrator.getRectifiedImage2();
+        
+        const double proportion = (double)rectified1.rows / (double)rectified1.cols;
+        cv::Mat showImg1(600, (uint32_t)(600.0 / proportion), CV_8UC1);
+        cv::Mat showImg2(600, (uint32_t)(600.0 / proportion), CV_8UC1);
+        
+        cv::resize(rectified1, showImg1, cv::Size((uint32_t)(600.0 / proportion), 600));
+        cv::resize(rectified2, showImg2, cv::Size((uint32_t)(600.0 / proportion), 600));
+        
+        cv::imshow("showImg1", showImg1);
+        cv::imshow("showImg2", showImg2);
+        cv::moveWindow("showImg2", 3 * (showImg1.cols), 0);
+        
+        cv::waitKey(0);
+        
+        
+        
    }
   
   return 0;
