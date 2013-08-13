@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <fstream>
 #include <boost/concept_check.hpp>
+#include <time.h>
 
 #include "polarcalibration.h"
 
@@ -45,34 +46,38 @@ bool PolarCalibration::compute(const cv::Mat& img1distorted, const cv::Mat& img2
     return compute(img1, img2);
 }
 
-bool PolarCalibration::compute(/*const*/ cv::Mat& img1, /*const*/ cv::Mat& img2) {
+bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2) {
+    
+    clock_t begin = clock();
     
     cv::Mat F;
     cv::Point2d epipole1, epipole2, m;
     if (! findFundamentalMat(img1, img2, F, epipole1, epipole2, m))
         return false;
     
+    clock_t end = clock();
+    double elapsedFMat = double(end - begin) / CLOCKS_PER_SEC;
+    
     cout << "epipole1: " << epipole1 << endl;
     cout << "epipole2: " << epipole2 << endl;
 
+    begin = clock();
     // Determine common region
-    // We look for epipolar lines
-    vector<cv::Vec3f> epilines1, epilines2;
-    vector<cv::Point2f> externalPoints1, externalPoints2;
-    // TODO: Remove these functions. They are not longer needed, but I have to modify determineRhoRange first
-    computeEpilinesBasedOnCase(epipole1, cv::Size(img1.cols, img1.rows), F, 2, m, externalPoints1, epilines2);
-    computeEpilinesBasedOnCase(epipole2, cv::Size(img2.cols, img2.rows), F, 1, m, externalPoints2, epilines1);
-    
     vector<cv::Vec3f> initialEpilines, finalEpilines;
     vector<cv::Point2f> epipoles(2);
     epipoles[0] = epipole1;
     epipoles[1] = epipole2;    
     determineCommonRegion(epipoles, cv::Size(img1.cols, img1.rows), F);
     
-    determineRhoRange(epipole1, cv::Size(img1.cols, img1.rows), externalPoints1, epilines1, m_minRho1, m_maxRho1);
-    determineRhoRange(epipole2, cv::Size(img1.cols, img1.rows), externalPoints2, epilines2, m_minRho2, m_maxRho2);
-    
     doTransformation(img1, img2, epipole1, epipole2, F);
+    
+    end = clock();
+    double elapsedPolar = double(end - begin) / CLOCKS_PER_SEC;
+    
+    cout << "Time F: " << elapsedFMat << endl;
+    cout << "Time transformation: " << elapsedPolar << endl;
+    
+    int keycode = cv::waitKey(0);
     
     return true;
 }
@@ -471,12 +476,15 @@ inline void PolarCalibration::computeEpilines(const vector<cv::Point2f> & points
  * This function is more easily understandable after reading section 3.4 of 
  * ftp://cmp.felk.cvut.cz/pub/cmp/articles/matousek/Sandr-TR-2009-04.pdf
  * */
-inline void PolarCalibration::determineCommonRegion(/*const*/ vector<cv::Point2f> &epipoles, 
+inline void PolarCalibration::determineCommonRegion(const vector<cv::Point2f> &epipoles, 
                                              const cv::Size imgDimensions, const cv::Mat & F) {
 
     vector<cv::Point2f> externalPoints1, externalPoints2;
     getExternalPoints(epipoles[0], imgDimensions, externalPoints1);
     getExternalPoints(epipoles[1], imgDimensions, externalPoints2);
+    
+    determineRhoRange(epipoles[0], imgDimensions, externalPoints1, m_minRho1, m_maxRho1);
+    determineRhoRange(epipoles[1], imgDimensions, externalPoints2, m_minRho2, m_maxRho2);
 
     if (!isInsideImage(epipoles[0], imgDimensions) && !isInsideImage(epipoles[1], imgDimensions)) {
         // CASE 1: Both outside
@@ -606,9 +614,8 @@ inline void PolarCalibration::determineCommonRegion(/*const*/ vector<cv::Point2f
 }
 
 // TODO: This function will be removed
-void PolarCalibration::determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
-                       const vector<cv::Point2f> &externalPoints, const vector<cv::Vec3f> &epilines,
-                       double & minRho, double & maxRho) {
+inline void PolarCalibration::determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
+                       const vector<cv::Point2f> &externalPoints, double & minRho, double & maxRho) {
     if (epipole.y < 0) { // Cases 1, 2 and 3
         if (epipole.x < 0) { // Case 1
             minRho = sqrt(epipole.x * epipole.x + epipole.y * epipole.y);         // Point A
@@ -679,20 +686,17 @@ void PolarCalibration::determineRhoRange(const cv::Point2d &epipole, const cv::S
             maxRho = sqrt(epipole.x * epipole.x + epipole.y * epipole.y);        // Point A
         }
     }
-
-    cout << "minRho = " << minRho << endl;
-    cout << "maxRho = " << maxRho << endl;
 }
 
 inline void PolarCalibration::getNewPointAndLineSingleImage(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
                                     const cv::Mat & F, const uint32_t & whichImage, const cv::Point2d & pOld1, const cv::Point2d & pOld2,
-                                   /*const*/ cv::Vec3f & prevLine, cv::Point2d & pNew1, cv::Vec3f & newLine1, 
+                                   cv::Vec3f & prevLine, cv::Point2d & pNew1, cv::Vec3f & newLine1, 
                                    cv::Point2d & pNew2, cv::Vec3f & newLine2) {
     
     // We obtain vector v
     const cv::Vec3f vBegin(m_line1B[0], m_line1B[1], m_line1B[2]);
     const cv::Vec3f vEnd(m_line1E[0], m_line1E[1], m_line1E[2]);
-    cv::Vec3f vCross = vEnd.cross(vBegin);
+    const cv::Vec3f vCross = vEnd.cross(vBegin);
     
     prevLine = getLineFromTwoPoints(epipole1, pOld1);
     
@@ -721,7 +725,7 @@ inline void PolarCalibration::getNewPointAndLineSingleImage(const cv::Point2d ep
 
 inline void PolarCalibration::getNewEpiline(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
                                      const cv::Mat & F, const cv::Point2d pOld1, const cv::Point2d pOld2, 
-                                     /*const*/ cv::Vec3f prevLine1, /*const*/ cv::Vec3f prevLine2, 
+                                     cv::Vec3f prevLine1, cv::Vec3f prevLine2, 
                                      cv::Point2d & pNew1, cv::Point2d & pNew2, cv::Vec3f & newLine1, cv::Vec3f & newLine2) {
     
     getNewPointAndLineSingleImage(epipole1, epipole2, imgDimensions, F, 1, pOld1, pOld2, prevLine1, pNew1, newLine1, pNew2, newLine2);
@@ -867,5 +871,5 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
     cv::resize(outputImg2, showImg2, cv::Size((uint32_t)(600.0 / proportion), 600));
     cv::imshow("outputImage1", showImg1);
     cv::imshow("outputImage2", showImg2);
-    int keycode = cv::waitKey(0);
+//     int keycode = cv::waitKey(0);
 }

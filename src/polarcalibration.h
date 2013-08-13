@@ -34,7 +34,7 @@ public:
     bool compute(const cv::Mat& img1distorted, const cv::Mat& img2distorted,
                  const cv::Mat & cameraMatrix1, const cv::Mat & distCoeffs1,
                  const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2);
-    bool compute(/*const*/ cv::Mat & img1, /*const*/ cv::Mat & img2);
+    bool compute(const cv::Mat & img1, const cv::Mat & img2);
     
     void setHessianThresh(const uint32_t & hessianThresh) { m_hessianThresh = hessianThresh; }
 private:
@@ -42,11 +42,10 @@ private:
                                     const cv::Mat & F, const uint32_t & imgIdx, const cv::Point2d & m,
                                     vector<cv::Point2f> &externalPoints, vector<cv::Vec3f> &epilines);
 
-    void determineCommonRegion(/*const*/ vector<cv::Point2f> &epipoles, 
+    void determineCommonRegion(const vector<cv::Point2f> &epipoles, 
                                const cv::Size imgDimensions, const cv::Mat & F);
     void determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
-                           const vector<cv::Point2f> &externalPoints, const vector<cv::Vec3f> &epilines,
-                           double & minRho, double & maxRho);
+                           const vector<cv::Point2f> &externalPoints, double & minRho, double & maxRho);
     bool findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
                             cv::Point2d & epipole1, cv::Point2d & epipole2, cv::Point2d & m);
     void getEpipoles(const cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2);
@@ -66,11 +65,11 @@ private:
     bool sign(const double & val);
     void getNewPointAndLineSingleImage(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
                                        const cv::Mat & F, const uint32_t & whichImage, const cv::Point2d & pOld1, const cv::Point2d & pOld2,
-                                        /*const*/ cv::Vec3f & prevLine, cv::Point2d & pNew1, cv::Vec3f & newLine1, 
+                                        cv::Vec3f & prevLine, cv::Point2d & pNew1, cv::Vec3f & newLine1, 
                                         cv::Point2d & pNew2, cv::Vec3f & newLine2);
     void getNewEpiline(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
                        const cv::Mat & F, const cv::Point2d pOld1, const cv::Point2d pOld2, 
-                       /*const*/ cv::Vec3f prevLine1, /*const*/ cv::Vec3f prevLine2, 
+                       cv::Vec3f prevLine1, cv::Vec3f prevLine2, 
                        cv::Point2d & pNew1, cv::Point2d & pNew2, cv::Vec3f & newLine1, cv::Vec3f & newLine2);
     void transformLine(const cv::Point2d& epipole, const cv::Point2d& p2, const cv::Mat& inputImage, 
                        const uint32_t & thetaIdx, const double &minRho, const double & maxRho, cv::Mat& outputImage);
