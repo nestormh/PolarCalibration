@@ -61,8 +61,8 @@ bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, const u
     clock_t end = clock();
     double elapsedFMat = double(end - begin) / CLOCKS_PER_SEC;
     
-    cout << "epipole1: " << epipole1 << endl;
-    cout << "epipole2: " << epipole2 << endl;
+//     cout << "epipole1: " << epipole1 << endl;
+//     cout << "epipole2: " << epipole2 << endl;
 
     begin = clock();
     // Determine common region
@@ -100,10 +100,10 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
     if (points1.size() < 8)
         return false;
     
-    cout << "sz = " << points1.size() << endl;
+//     cout << "sz = " << points1.size() << endl;
     
     F = cv::findFundamentalMat(points1, points2, CV_FM_8POINT);
-    cout << "F:\n" << F << endl; 
+//     cout << "F:\n" << F << endl; 
     
     if (cv::countNonZero(F) == 0)
         return false;
