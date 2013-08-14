@@ -47,8 +47,10 @@ public:
     
     bool compute(const cv::Mat& img1distorted, const cv::Mat& img2distorted,
                  const cv::Mat & cameraMatrix1, const cv::Mat & distCoeffs1,
-                 const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2);
-    bool compute(const cv::Mat & img1, const cv::Mat & img2);
+                 const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2, 
+                 const uint32_t method = FMAT_METHOD_OFLOW);
+    bool compute(const cv::Mat & img1, const cv::Mat & img2, 
+                 const uint32_t method = FMAT_METHOD_OFLOW);
     
     void setHessianThresh(const uint32_t & hessianThresh) { m_hessianThresh = hessianThresh; }
     

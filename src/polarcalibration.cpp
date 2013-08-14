@@ -37,7 +37,8 @@ PolarCalibration::~PolarCalibration() {
 
 bool PolarCalibration::compute(const cv::Mat& img1distorted, const cv::Mat& img2distorted, 
                                const cv::Mat & cameraMatrix1, const cv::Mat & distCoeffs1, 
-                               const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2) {
+                               const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2, 
+                               const uint32_t method) {
     
     cv::Mat img1(img1distorted.rows, img1distorted.cols, CV_8UC1);
     cv::Mat img2(img2distorted.rows, img2distorted.cols, CV_8UC1);
@@ -48,13 +49,13 @@ bool PolarCalibration::compute(const cv::Mat& img1distorted, const cv::Mat& img2
     return compute(img1, img2);
 }
 
-bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2) {
+bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, const uint32_t method) {
     
     clock_t begin = clock();
     
     cv::Mat F;
     cv::Point2d epipole1, epipole2;
-    if (! findFundamentalMat(img1, img2, F, epipole1, epipole2, FMAT_METHOD_OFLOW))
+    if (! findFundamentalMat(img1, img2, F, epipole1, epipole2, method))
         return false;
     
     clock_t end = clock();
@@ -135,7 +136,7 @@ inline void PolarCalibration::findPairsOFlow(const cv::Mat & img1, const cv::Mat
     if (keypoints1.size() == 0)
         return;
     
-    vector<cv::Point2f> points1(keypoints1.size()), points2;
+    vector<cv::Point2f> points1(keypoints1.size()), points2, points1B;
     {
         uint32_t idx = 0;
         for (vector<cv::KeyPoint>::iterator it = keypoints1.begin(); it != keypoints1.end(); it++, idx++) {
@@ -143,19 +144,21 @@ inline void PolarCalibration::findPairsOFlow(const cv::Mat & img1, const cv::Mat
         }
     }    
     // Optical flow
-    vector<cv::Mat> pyramid2;
-    vector<uint8_t> status;
-    vector<float_t> error;
+    vector<uint8_t> status, statusB;
+    vector<float_t> error, errorB;
     
     cv::calcOpticalFlowPyrLK(img1, img2, points1, points2, status, error, cv::Size(3, 3), 3);
+    cv::calcOpticalFlowPyrLK(img2, img1, points2, points1B, statusB, errorB, cv::Size(3, 3), 3);
     
     vector<cv::Point2f> pointsA(points1.size()), pointsB(points2.size());
     {
         uint32_t idx = 0;
         for (uint32_t i = 0; i < points1.size(); i++) {
-            if (status[i] == 1) {
-                pointsA[idx] = points1[i];
-                pointsB[idx] = points2[i];
+            if ((status[i] == 1) && (statusB[i] == 1)) {
+                if (cv::norm(points1[i] - points1B[i]) < 1.0) {
+                    pointsA[idx] = points1[i];
+                    pointsB[idx] = points2[i];
+                }
             }
             idx++;
         }
