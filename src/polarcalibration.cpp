@@ -49,15 +49,17 @@ bool PolarCalibration::compute(const cv::Mat& img1distorted, const cv::Mat& img2
     return compute(img1, img2);
 }
 
-bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, const uint32_t method) {
-    
+
+bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, cv::Mat F, 
+                               vector< cv::Point2f > points1, vector< cv::Point2f > points2, const uint32_t method)
+{
     clock_t begin = clock();
     
-    cv::Mat F;
+//     cv::Mat F;
     cv::Point2d epipole1, epipole2;
-    if (! findFundamentalMat(img1, img2, F, epipole1, epipole2, method))
+    if (! findFundamentalMat(img1, img2, F, points1, points2, epipole1, epipole2, method))
         return false;
-    
+
     clock_t end = clock();
     double elapsedFMat = double(end - begin) / CLOCKS_PER_SEC;
     
@@ -83,30 +85,34 @@ bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, const u
     return true;
 }
 
-inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& F, 
+
+inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::Mat& img2, cv::Mat F, 
+                                                 vector<cv::Point2f> points1, vector<cv::Point2f> points2, 
                                                  cv::Point2d& epipole1, cv::Point2d& epipole2, const uint32_t method)
 {
-    vector<cv::Point2f> points1, points2;
+//     vector<cv::Point2f> points1, points2;
     
-    switch(method) {
-        case FMAT_METHOD_OFLOW:
-            findPairsOFlow(img1, img2, points1, points2);
-            break;
-        case FMAT_METHOD_SURF:
-            findPairsSURF(img1, img2, points1, points2);
-            break;
+    if (F.empty()) {
+        switch(method) {
+            case FMAT_METHOD_OFLOW:
+                findPairsOFlow(img1, img2, points1, points2);
+                break;
+            case FMAT_METHOD_SURF:
+                findPairsSURF(img1, img2, points1, points2);
+                break;
+        }
+        
+        if (points1.size() < 8)
+            return false;
+        
+    //     cout << "sz = " << points1.size() << endl;
+        
+        F = cv::findFundamentalMat(points1, points2, CV_FM_8POINT);
+    //     cout << "F:\n" << F << endl; 
+        
+        if (cv::countNonZero(F) == 0)
+            return false;
     }
-    
-    if (points1.size() < 8)
-        return false;
-    
-//     cout << "sz = " << points1.size() << endl;
-    
-    F = cv::findFundamentalMat(points1, points2, CV_FM_8POINT);
-//     cout << "F:\n" << F << endl; 
-    
-    if (cv::countNonZero(F) == 0)
-        return false;
     
     // We obtain the epipoles
     getEpipoles(F, epipole1, epipole2);
@@ -858,7 +864,7 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
         m_mapY2 = m_mapY2(cv::Range(0, thetaIdx), cv::Range::all());
     }
     
-    getRectifiedImages(img1, img2, m_rectified1, m_rectified2);
+//     getRectifiedImages(img1, img2, m_rectified1, m_rectified2);
 }
 
 void PolarCalibration::getRectifiedImages(const cv::Mat& img1, const cv::Mat& img2, 

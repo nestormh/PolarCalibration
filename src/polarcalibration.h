@@ -49,7 +49,9 @@ public:
                  const cv::Mat & cameraMatrix1, const cv::Mat & distCoeffs1,
                  const cv::Mat & cameraMatrix2, const cv::Mat & distCoeffs2, 
                  const uint32_t method = FMAT_METHOD_OFLOW);
-    bool compute(const cv::Mat & img1, const cv::Mat & img2, 
+    bool compute(const cv::Mat & img1, const cv::Mat & img2, cv::Mat F = cv::Mat(),
+                 vector<cv::Point2f> points1 = vector<cv::Point2f>(), 
+                 vector<cv::Point2f> points2 = vector<cv::Point2f>(), 
                  const uint32_t method = FMAT_METHOD_OFLOW);
     
     void setHessianThresh(const uint32_t & hessianThresh) { m_hessianThresh = hessianThresh; }
@@ -66,8 +68,9 @@ private:
                                const cv::Size imgDimensions, const cv::Mat & F);
     void determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            const vector<cv::Point2f> &externalPoints, double & minRho, double & maxRho);
-    bool findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
-                                cv::Point2d & epipole1, cv::Point2d & epipole2, const uint32_t method = FMAT_METHOD_OFLOW);
+    bool findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat F,
+                            vector<cv::Point2f> points1, vector<cv::Point2f> points2, 
+                            cv::Point2d & epipole1, cv::Point2d & epipole2, const uint32_t method = FMAT_METHOD_OFLOW);
     void findPairsSURF(const cv::Mat & img1, const cv::Mat & img2,
                         vector<cv::Point2f> & outPoints1, vector<cv::Point2f> & outPoints2);
     void findPairsOFlow(const cv::Mat & img1, const cv::Mat & img2,
