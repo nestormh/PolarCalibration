@@ -62,7 +62,7 @@ int main(int argc, char * argv[]) {
     
     PolarCalibration calibrator;
     calibrator.toggleShowCommonRegion(true);
-    calibrator.toggleShowIterations(false);
+    calibrator.toggleShowIterations(true);
     for (uint32_t i = MIN_IDX; i < MAX_IDX; i++) {
         boost::filesystem::path img1Path(BASE_PATH);
         boost::filesystem::path img2Path(BASE_PATH);

@@ -105,7 +105,7 @@ private:
     void showCommonRegion(const cv::Point2d epipole, const cv::Vec3f & line11, const cv::Vec3f & line12,
                           const cv::Vec3f & line13, const cv::Vec3f & line14, 
                           const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
-                          const cv::Point2d & b, const cv::Size & imgDimensions, 
+                          const cv::Point2d & b, const cv::Point2d & e, const cv::Size & imgDimensions, 
                           const vector<cv::Point2f> & externalPoints, std::string windowName);
     void showNewEpiline(const cv::Point2d epipole, const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
                         const cv::Vec3f & newLine, const cv::Point2d & pOld, const cv::Point2d & pNew, 
