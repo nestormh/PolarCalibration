@@ -776,13 +776,15 @@ inline void PolarCalibration::transformLine(const cv::Point2d& epipole, const cv
 
 void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F) {
    
-    double minRho = min(m_minRho1, m_minRho2);
-    double maxRho = max(m_maxRho1, m_maxRho2);
-
-    m_mapX1 = cv::Mat::zeros(2 * (img1.rows + img1.cols), maxRho - minRho + 1, CV_32FC1);
-    m_mapY1 = cv::Mat::zeros(2 * (img1.rows + img1.cols), maxRho - minRho + 1, CV_32FC1);
-    m_mapX2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), maxRho - minRho + 1, CV_32FC1);
-    m_mapY2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), maxRho - minRho + 1, CV_32FC1);
+    const double rhoRange1 = m_maxRho1 - m_minRho1 + 1;
+    const double rhoRange2 = m_maxRho2 - m_minRho2 + 1;
+    
+    const double rhoRange = max(rhoRange1, rhoRange2);
+    
+    m_mapX1 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
+    m_mapY1 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
+    m_mapX2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
+    m_mapY2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
     
     {
         cv::Point2d p1 = m_b1, p2 = m_b2;
@@ -800,11 +802,27 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
             // TODO: Visualize while doing the transformation. I'm not planning to do that unless I
             // need it due to a bug
 //             if (m_showIterations) {
+//                 cv::Size newSize;
+//                 if (m_mapX1.cols > m_mapX1.rows) {
+//                     newSize = cv::Size(600, 600 * (thetaIdx + 100) / (m_maxRho1 - m_minRho1));
+//                 } else {
+//                     newSize = cv::Size(600 * (m_maxRho1 - m_minRho1) / (thetaIdx + 100), 600);
+//                 }
+// 
+//                 cout << "thetaIdx " << thetaIdx << endl;
+//                 cout << "rho " << (m_maxRho1 - m_minRho1) << endl;
+//                 cout << "newSize " << newSize << endl;
+//                 
+// //                 exit(0);
+//                 
+//                 cv::Mat rectified1, rectified2;
+//                 cv::Mat scaled1, scaled2;
+//                 getRectifiedImages(img1, img2, rectified1, rectified2);
+//                 cv::resize(rectified1, scaled1, newSize);
+//                 cv::resize(rectified2, scaled2, newSize);
 //                 const double proportion = (2 * (img1.rows + img1.cols)) / (maxRho - minRho + 1);
-//                 cv::resize(outputImg1, showImg1, cv::Size((uint32_t)(600.0 / proportion), 600));
-//                 cv::imshow("outputImage1", showImg1);
-//                 cv::resize(outputImg2, showImg2, cv::Size((uint32_t)(600.0 / proportion), 600));
-//                 cv::imshow("outputImage2", showImg2);
+//                 cv::imshow("outputImage1", scaled1);
+//                 cv::imshow("outputImage2", scaled2);
 //             }
             
             getNewEpiline(epipole1, epipole2, cv::Size(img1.cols, img1.rows), F, p1, p2, line1, line2, p1, p2, line1, line2);

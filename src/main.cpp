@@ -61,7 +61,7 @@ int main(int argc, char * argv[]) {
     cv::namedWindow("showImg2");
     
     PolarCalibration calibrator;
-    calibrator.toggleShowCommonRegion(false);
+    calibrator.toggleShowCommonRegion(true);
     calibrator.toggleShowIterations(false);
     for (uint32_t i = MIN_IDX; i < MAX_IDX; i++) {
         boost::filesystem::path img1Path(BASE_PATH);
@@ -126,6 +126,8 @@ int main(int argc, char * argv[]) {
         cv::imshow("showImg1", scaled1);
         cv::imshow("showImg2", scaled2);
         cv::moveWindow("showImg2", 700, 0);
+        
+        cv::imwrite("/tmp/rect1.png", rectified1);
         
         uint8_t keycode = cv::waitKey(0);
         switch (keycode) {
