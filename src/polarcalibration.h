@@ -61,14 +61,14 @@ public:
     
     void getRectifiedImages(const cv::Mat & img1, const cv::Mat & img2, 
                             cv::Mat & rectified1, cv::Mat & rectified2, int interpolation = cv::INTER_CUBIC);
-    cv::Mat getRectifiedImage1() { return m_rectified1; }
-    cv::Mat getRectifiedImage2() { return m_rectified2; }
+//     cv::Mat getRectifiedImage1() { return m_rectified1; }
+//     cv::Mat getRectifiedImage2() { return m_rectified2; }
 private:
     void determineCommonRegion(const vector<cv::Point2f> &epipoles, 
                                const cv::Size imgDimensions, const cv::Mat & F);
     void determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            const vector<cv::Point2f> &externalPoints, double & minRho, double & maxRho);
-    bool findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat F,
+    bool findFundamentalMat(const cv::Mat & img1, const cv::Mat & img2, cv::Mat & F,
                             vector<cv::Point2f> points1, vector<cv::Point2f> points2, 
                             cv::Point2d & epipole1, cv::Point2d & epipole2, const uint32_t method = FMAT_METHOD_OFLOW);
     void findPairsSURF(const cv::Mat & img1, const cv::Mat & img2,

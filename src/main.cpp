@@ -19,7 +19,7 @@ using namespace std;
 #define IMG2_PATH "seq03-img-right"
 #define FILE_STRING2 "image_%08d_1.png"
 #define CALIBRATION_STRING "cam%d.cal"
-#define MIN_IDX 138 //120
+#define MIN_IDX 10//138 //120
 #define MAX_IDX 999
 
 // #define BASE_PATH "/local/imaged/stixels/castlejpg"
@@ -104,21 +104,37 @@ int main(int argc, char * argv[]) {
             continue;
         
         // Visualization
-        cv::Mat rectified1 = calibrator.getRectifiedImage1();
-        cv::Mat rectified2 = calibrator.getRectifiedImage2();
+        cv::Mat img1, img2, rectified1, rectified2;
+        cv::undistort(img1distorted, img1, cameraMatrix1, distCoeffs1);
+        cv::undistort(img2distorted, img2, cameraMatrix2, distCoeffs2);
+        calibrator.getRectifiedImages(img1, img2, rectified1, rectified2);
         
-        const double proportion = (double)rectified1.rows / (double)rectified1.cols;
-        cv::Mat showImg1(600, (uint32_t)(600.0 / proportion), CV_8UC1);
-        cv::Mat showImg2(600, (uint32_t)(600.0 / proportion), CV_8UC1);
+        cv::Mat scaled1, scaled2;
+        cv::Size newSize;
+        if (rectified1.cols > rectified1.rows) {
+            newSize = cv::Size(600, 600 * rectified1.rows / rectified1.cols);
+        } else {
+            newSize = cv::Size(600 * rectified1.cols / rectified1.rows, 600);
+        }
         
-        cv::resize(rectified1, showImg1, cv::Size((uint32_t)(600.0 / proportion), 600));
-        cv::resize(rectified2, showImg2, cv::Size((uint32_t)(600.0 / proportion), 600));
-        
-        cv::imshow("showImg1", showImg1);
-        cv::imshow("showImg2", showImg2);
+        cout << "prevSize " << rectified1.size() << endl;
+        cout << "newSize " << newSize << endl;
+
+        cv::resize(rectified1, scaled1, newSize);
+        cv::resize(rectified2, scaled2, newSize);
+
+        cv::imshow("showImg1", scaled1);
+        cv::imshow("showImg2", scaled2);
         cv::moveWindow("showImg2", 700, 0);
         
-        cv::waitKey(0);
+        uint8_t keycode = cv::waitKey(0);
+        switch (keycode) {
+            case 'q':
+                exit(0);
+                break;
+            default:
+                ;
+        }
    }
   
   return 0;

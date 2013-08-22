@@ -86,7 +86,7 @@ bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, cv::Mat
 }
 
 
-inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::Mat& img2, cv::Mat F, 
+inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::Mat& img2, cv::Mat & F, 
                                                  vector<cv::Point2f> points1, vector<cv::Point2f> points2, 
                                                  cv::Point2d& epipole1, cv::Point2d& epipole2, const uint32_t method)
 {
@@ -120,12 +120,16 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
     checkF(F, epipole1, epipole2, points1[0], points2[0]);
     
     /// NOTE: Remove. Just for debugging (begin)
-    //     cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_B.xml", cv::FileStorage::READ);
-    //     file["F"] >> F;
-    //     file.release();
-    //     cout << "F (from file)\n" << F << endl;
-    //     getEpipoles(F, epipole1, epipole2);
+//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_B.xml", cv::FileStorage::READ);
+//         file["F"] >> F;
+//         file.release();
+//         cout << "F (from file)\n" << F << endl;
+//         getEpipoles(F, epipole1, epipole2);
     /// NOTE: Remove. Just for debugging (end)
+    
+//     cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_B.xml", cv::FileStorage::WRITE);
+//     file << "F" << F;
+//     file.release();
     
     return true;
 }
@@ -698,13 +702,16 @@ inline void PolarCalibration::getNewPointAndLineSingleImage(const cv::Point2d ep
                                    cv::Point2d & pNew2, cv::Vec3f & newLine2) {
     
     // We obtain vector v
-    const cv::Vec3f vBegin(m_line1B[0], m_line1B[1], m_line1B[2]);
-    const cv::Vec3f vEnd(m_line1E[0], m_line1E[1], m_line1E[2]);
-    const cv::Vec3f vCross = vEnd.cross(vBegin);
+    cv::Vec3f vBegin(m_b1.x - epipole1.x, m_b1.y - epipole1.x, 0.0);
+    cv::Vec3f vEnd(m_b2.x - epipole2.x, m_b2.y - epipole2.x, 0.0);
+    vBegin /= cv::norm(vBegin);
+    vEnd /= cv::norm(vEnd);
     
+    const cv::Vec3f vCross = vEnd.cross(vBegin);
+
     prevLine = GET_LINE_FROM_POINTS(epipole1, pOld1);
     
-    cv::Vec2f v(-prevLine[0], -prevLine[1]);
+    cv::Vec2f v(-prevLine[0], -prevLine[1]);    
     v /= cv::norm(v);
     if (vCross[2] < 0.0) {
         v = -v;
