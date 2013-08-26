@@ -120,20 +120,20 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
     checkF(F, epipole1, epipole2, points1[0], points2[0]);
     
     /// NOTE: Remove. Just for debugging (begin)
-        cout << "***********************" << endl;
-        cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_H.xml", cv::FileStorage::READ);
-        file["F"] >> F;
-        file.release();
-        cout << "F (from file)\n" << F << endl;
-        getEpipoles(F, epipole1, epipole2);
-        cout << "epipole1 " << epipole1 << endl;
-        cout << "epipole2 " << epipole2 << endl;
+//         cout << "***********************" << endl;
+//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_M.xml", cv::FileStorage::READ);
+//         file["F"] >> F;
+//         file.release();
+//         cout << "F (from file)\n" << F << endl;
+//         getEpipoles(F, epipole1, epipole2);
+//         cout << "epipole1 " << epipole1 << endl;
+//         cout << "epipole2 " << epipole2 << endl;
 //         exit(0);
     /// NOTE: Remove. Just for debugging (end)
     
-//     cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_J.xml", cv::FileStorage::WRITE);
-//     file << "F" << F;
-//     file.release();
+    cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_M.xml", cv::FileStorage::WRITE);
+    file << "F" << F;
+    file.release();
     
         if (SIGN(epipole1.x) != SIGN(epipole2.x) &&
             SIGN(epipole1.y) != SIGN(epipole2.y)) {
@@ -947,6 +947,7 @@ inline void PolarCalibration::getNewPointAndLineSingleImage(const cv::Point2d ep
 
     pNew1 = cv::Point2d(pOld1.x + v[0] * m_stepSize, pOld1.y + v[1] * m_stepSize);
     cout << "epipole1 " << epipole1 << endl;
+    cout << "epipole2 " << epipole2 << endl;
     cout << "pOld1 " << pOld1 << endl;
     cout << "m_e1 " << m_e1 << endl;
     cout << "prevLine " << prevLine << endl;

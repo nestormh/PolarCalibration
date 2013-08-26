@@ -31,8 +31,8 @@ using namespace std;
 #define REACHED(v1, v2) (bool)(v1.cross(v2)[2] < 0.5)
 
 #define IS_INSIDE_IMAGE(point, imgDimensions) \
-    (((uint32_t)point.x >= 0) && ((uint32_t)point.y >= 0) && \
-    ((uint32_t)point.x < imgDimensions.width) && ((uint32_t)point.y < imgDimensions.height))
+    ((point.x >= 0) && (point.y >= 0) && \
+    (point.x < imgDimensions.width) && (point.y < imgDimensions.height))
     
 // (py – qy)x + (qx – px)y + (pxqy – qxpy) = 0
 #define GET_LINE_FROM_POINTS(point1, point2) \

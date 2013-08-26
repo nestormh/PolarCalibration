@@ -107,8 +107,8 @@ void PolarCalibration::showCommonRegion(const cv::Point2d epipole, const cv::Vec
     cv::line(img, image2World(getPointFromLineAndX(-2 * imgDimensions.width, line14), imgDimensions),
              image2World(getPointFromLineAndX(2 * imgDimensions.width, line14), imgDimensions), cv::Scalar(0, 0, 255));
 
-//     cv::circle(img, image2World(b, imgDimensions), 10, cv::Scalar(128, 255, 128), 1);
-//     cv::circle(img, image2World(e, imgDimensions), 10, cv::Scalar(128, 255, 128), -1);
+    cv::circle(img, image2World(b, imgDimensions), 10, cv::Scalar(128, 255, 128), 1);
+    cv::circle(img, image2World(e, imgDimensions), 10, cv::Scalar(128, 255, 128), -1);
 
     cv::namedWindow(windowName.c_str());
     cv::imshow(windowName.c_str(), img);
