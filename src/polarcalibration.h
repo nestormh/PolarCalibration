@@ -28,6 +28,8 @@ using namespace std;
 
 #define SIGN(val) (bool)(val >= 0.0)
 
+#define REACHED(v1, v2) (bool)(v1.cross(v2)[2] < 0.5)
+
 #define IS_INSIDE_IMAGE(point, imgDimensions) \
     (((uint32_t)point.x >= 0) && ((uint32_t)point.y >= 0) && \
     ((uint32_t)point.x < imgDimensions.width) && ((uint32_t)point.y < imgDimensions.height))
@@ -80,7 +82,7 @@ private:
     void getExternalPoints(const cv::Point2d &epipole, const cv::Size imgDimensions,
                            vector<cv::Point2f> &externalPoints);
     bool lineIntersectsSegment(const cv::Vec3d & line, const cv::Point2d & p1, const cv::Point2d & p2, cv::Point2d * intersection = NULL);
-    bool lineIntersectsRect(const cv::Vec3d & line, const cv::Size & imgDimensions);
+    bool lineIntersectsRect(const cv::Vec3d & line, const cv::Size & imgDimensions, cv::Point2d * intersection = NULL);
     bool isTheRightPoint(const cv::Point2d & epipole, const cv::Point2d & intersection, const cv::Vec3d & line,
                          const cv::Point2d * lastPoint);
     cv::Point2d getBorderIntersection(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions, 
