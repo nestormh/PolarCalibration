@@ -37,6 +37,10 @@ using namespace std;
 // (py – qy)x + (qx – px)y + (pxqy – qxpy) = 0
 #define GET_LINE_FROM_POINTS(point1, point2) \
     cv::Vec3f(point1.y - point2.y, point2.x - point1.x, point1.x * point2.y - point2.x * point1.y)
+    
+#define IS_A_CORNER(point, imgDimensions) \
+    (bool)(((uint32_t)point.x == 0) || ((uint32_t)point.x == imgDimensions.width - 1)) && \
+          (((uint32_t)point.y == 0) || ((uint32_t)point.y == imgDimensions.height - 1))
 
 class PolarCalibration
 {

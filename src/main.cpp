@@ -61,8 +61,8 @@ int main(int argc, char * argv[]) {
     cv::namedWindow("showImg2");
     
     PolarCalibration calibrator;
-    calibrator.toggleShowCommonRegion(false);
-    calibrator.toggleShowIterations(false);
+    calibrator.toggleShowCommonRegion(true);
+    calibrator.toggleShowIterations(true);
     for (uint32_t i = MIN_IDX; i < MAX_IDX; i++) {
         boost::filesystem::path img1Path(BASE_PATH);
         boost::filesystem::path img2Path(BASE_PATH);
