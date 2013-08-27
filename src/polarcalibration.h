@@ -91,6 +91,8 @@ private:
                          const cv::Point2d * lastPoint);
     cv::Point2d getBorderIntersection(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions, 
                                       const cv::Point2d * lastPoint = NULL);        
+    void getBorderIntersections(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions, 
+                                vector<cv::Point2d> & intersections);
     void computeEpilines(const vector<cv::Point2f> & points, const uint32_t &whichImage, 
                         const cv::Mat & F, const vector <cv::Vec3f> & oldlines, vector <cv::Vec3f> & newLines);
     void getNewPointAndLineSingleImage(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 

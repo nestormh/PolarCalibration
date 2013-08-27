@@ -62,6 +62,8 @@ void PolarCalibration::showNewEpiline(const cv::Point2d epipole, const cv::Vec3f
 
     cv::circle(img, image2World(pOld, imgDimensions), 3, cv::Scalar(255, 0, 0), -1);
     cv::circle(img, image2World(pNew, imgDimensions), 3, cv::Scalar(0, 0, 255), -1);
+    
+    cv::flip(img, img, 0);
 
     cv::namedWindow(windowName.c_str());
     cv::imshow(windowName.c_str(), img);
@@ -109,6 +111,8 @@ void PolarCalibration::showCommonRegion(const cv::Point2d epipole, const cv::Vec
 
     cv::circle(img, image2World(b, imgDimensions), 10, cv::Scalar(128, 255, 128), 1);
     cv::circle(img, image2World(e, imgDimensions), 10, cv::Scalar(128, 255, 128), -1);
+    
+    cv::flip(img, img, 0);
 
     cv::namedWindow(windowName.c_str());
     cv::imshow(windowName.c_str(), img);
