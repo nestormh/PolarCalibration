@@ -120,14 +120,16 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
     checkF(F, epipole1, epipole2, points1[0], points2[0]);
     
     /// NOTE: Remove. Just for debugging (begin)
+//     {
 //         cout << "***********************" << endl;
-//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_P.xml", cv::FileStorage::READ);
+//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_R.xml", cv::FileStorage::READ);
 //         file["F"] >> F;
 //         file.release();
 //         cout << "F (from file)\n" << F << endl;
 //         getEpipoles(F, epipole1, epipole2);
 //         cout << "epipole1 " << epipole1 << endl;
 //         cout << "epipole2 " << epipole2 << endl;
+//     }
     /// NOTE: Remove. Just for debugging (end)
     
 //     cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_O.xml", cv::FileStorage::WRITE);
@@ -762,7 +764,16 @@ inline void PolarCalibration::determineCommonRegion(const vector<cv::Point2f> &e
             cv::Vec3d v2B(m_b2.x - epipoles[1].x, m_b2.y - epipoles[1].y, 1.0);
             cv::Vec3d v2E(m_e2.x - epipoles[1].x, m_e2.y - epipoles[1].y, 1.0);
             
-            if (SIGN(v0.cross(v1)[2]) != SIGN(v2B.cross(v2E)[2])) {
+            cout << "acos(v0.dot(v2B)) " << acos(v0.dot(v2B)) << endl;
+            cout << "acos(v1.dot(v2B)) " << acos(v1.dot(v2B)) << endl;
+            cout << "intersectionsB[0] " << intersectionsB[0] << endl;
+            cout << "intersectionsB[1] " << intersectionsB[1] << endl;
+            cout << "v0 " << v0 << endl;
+            cout << "v1 " << v1 << endl;
+            cout << "v2B " << v2B << endl;
+            
+//             if (SIGN(v0.cross(v1)[2]) != SIGN(v2B.cross(v2E)[2])) {
+            if (acos(v0.dot(v2B)) < acos(v1.dot(v2B))) {
                 m_b1 = intersectionsB[0];
             } else {
                 m_b1 = intersectionsB[1];
@@ -771,7 +782,8 @@ inline void PolarCalibration::determineCommonRegion(const vector<cv::Point2f> &e
             v0 = cv::Vec3d(intersectionsE[0].x - epipoles[0].x, intersectionsE[0].y - epipoles[0].y, 1.0);
             v1 = cv::Vec3d(intersectionsE[1].x - epipoles[0].x, intersectionsE[1].y - epipoles[0].y, 1.0);
             
-            if (SIGN(v0.cross(v1)[2]) != SIGN(v2B.cross(v2E)[2])) {
+//             if (SIGN(v0.cross(v1)[2]) != SIGN(v2B.cross(v2E)[2])) {
+            if (acos(v0.dot(v2E)) < acos(v1.dot(v2E))) {
                 m_e1 = intersectionsE[1];
             } else {
                 m_e1 = intersectionsE[0];
@@ -844,7 +856,8 @@ inline void PolarCalibration::determineCommonRegion(const vector<cv::Point2f> &e
             cv::Vec3d v1B(m_b1.x - epipoles[0].x, m_b1.y - epipoles[0].y, 1.0);
             cv::Vec3d v1E(m_e1.x - epipoles[0].x, m_e1.y - epipoles[0].y, 1.0);
             
-            if (SIGN(v0.cross(v1)[2]) != SIGN(v1B.cross(v1E)[2])) {
+//             if (SIGN(v0.cross(v1)[2]) != SIGN(v1B.cross(v1E)[2])) {
+            if (acos(v0.dot(v1B)) < acos(v1.dot(v1B))) {
                 m_b2 = intersectionsB[0];
             } else {
                 m_b2 = intersectionsB[1];
@@ -853,7 +866,8 @@ inline void PolarCalibration::determineCommonRegion(const vector<cv::Point2f> &e
             v0 = cv::Vec3d(intersectionsE[0].x - epipoles[1].x, intersectionsE[0].y - epipoles[1].y, 1.0);
             v1 = cv::Vec3d(intersectionsE[1].x - epipoles[1].x, intersectionsE[1].y - epipoles[1].y, 1.0);
             
-            if (SIGN(v0.cross(v1)[2]) != SIGN(v1B.cross(v1E)[2])) {
+//             if (SIGN(v0.cross(v1)[2]) != SIGN(v1B.cross(v1E)[2])) {
+            if (acos(v0.dot(v1E)) < acos(v1.dot(v1E))) {
                 m_e2 = intersectionsE[1];
             } else {
                 m_e2 = intersectionsE[0];
@@ -1067,7 +1081,7 @@ inline void PolarCalibration::transformLine(const cv::Point2d& epipole, const cv
     
     {
         uint32_t rhoIdx = 0;
-        for (double rho = minRho; rho <= maxDist; rho += 1.0, rhoIdx++) {
+        for (double rho = minRho; rho <= min(maxDist, maxRho); rho += 1.0, rhoIdx++) {
             cv::Point2d target(v[0] * rho + epipole.x, v[1] * rho + epipole.y);
             if ((target.x >= 0) && (target.x < inputImage.cols) &&
                 (target.y >= 0) && (target.y < inputImage.rows)) {
@@ -1323,8 +1337,8 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
 void PolarCalibration::getRectifiedImages(const cv::Mat& img1, const cv::Mat& img2, 
                                           cv::Mat& rectified1, cv::Mat& rectified2, int interpolation) {
     
-    cv::remap(img1, rectified1, m_mapX1, m_mapY1, interpolation);
-    cv::remap(img2, rectified2, m_mapX2, m_mapY2, interpolation);
+    cv::remap(img1, rectified1, m_mapX1, m_mapY1, interpolation, cv::BORDER_TRANSPARENT);
+    cv::remap(img2, rectified2, m_mapX2, m_mapY2, interpolation, cv::BORDER_TRANSPARENT);
 }
 
 
