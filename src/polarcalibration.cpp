@@ -122,8 +122,8 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
     /// NOTE: Remove. Just for debugging (begin)
     {
         cout << "***********************" << endl;
-//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_Q.xml", cv::FileStorage::READ);
-        cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/results/mats/lastMat_0925.xml", cv::FileStorage::READ);
+        cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_R.xml", cv::FileStorage::READ);
+//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/results/mats/lastMat_0160.xml", cv::FileStorage::READ);
         file["F"] >> F;
         file.release();
         cout << "F (from file)\n" << F << endl;

@@ -94,10 +94,10 @@ void PolarCalibration::showCommonRegion(const cv::Point2d epipole, const cv::Vec
 //     cv::line(img, image2World(getPointFromLineAndX(epipole.x, line11), imgDimensions),
 //              image2World(getPointFromLineAndX(0, line11), imgDimensions), cv::Scalar(255, 0, 0));
 
-    cv::line(img, image2World(getPointFromLineAndX(-2 * imgDimensions.width, lineB), imgDimensions),
-             image2World(getPointFromLineAndX(2 * imgDimensions.width, lineB), imgDimensions), cv::Scalar(255, 0, 255), 3);
-    cv::line(img, image2World(getPointFromLineAndX(-2 * imgDimensions.width, lineE), imgDimensions),
-             image2World(getPointFromLineAndX(2 * imgDimensions.width, lineE), imgDimensions), cv::Scalar(0, 255, 255), 3);
+//     cv::line(img, image2World(getPointFromLineAndX(-2 * imgDimensions.width, lineB), imgDimensions),
+//              image2World(getPointFromLineAndX(2 * imgDimensions.width, lineB), imgDimensions), cv::Scalar(255, 0, 255), 3);
+//     cv::line(img, image2World(getPointFromLineAndX(-2 * imgDimensions.width, lineE), imgDimensions),
+//              image2World(getPointFromLineAndX(2 * imgDimensions.width, lineE), imgDimensions), cv::Scalar(0, 255, 255), 3);
 
     cv::line(img, image2World(getPointFromLineAndX(-2 * imgDimensions.width, line11), imgDimensions),
              image2World(getPointFromLineAndX(2 * imgDimensions.width, line11), imgDimensions), cv::Scalar(255, 0, 0), 2);
