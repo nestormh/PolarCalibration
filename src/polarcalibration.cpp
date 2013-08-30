@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <fstream>
 #include <boost/concept_check.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <time.h>
 #include <omp.h>
 
@@ -929,7 +931,8 @@ inline void PolarCalibration::getNewEpiline(const cv::Point2d epipole1, const cv
 }
 
 inline void PolarCalibration::transformLine(const cv::Point2d& epipole, const cv::Point2d& p2, const cv::Mat& inputImage, 
-                                            const uint32_t & thetaIdx, const double &minRho, const double & maxRho, cv::Mat& mapX, cv::Mat& mapY)
+                                            const uint32_t & thetaIdx, const double &minRho, const double & maxRho, 
+                                            cv::Mat& mapX, cv::Mat& mapY, cv::Mat& inverseMapX, cv::Mat& inverseMapY)
 {
     cv::Vec2f v(p2.x - epipole.x, p2.y - epipole.y);
     double maxDist = cv::norm(v);
@@ -944,6 +947,9 @@ inline void PolarCalibration::transformLine(const cv::Point2d& epipole, const cv
 
                 mapX.at<float>(thetaIdx, rhoIdx) = target.x;
                 mapY.at<float>(thetaIdx, rhoIdx) = target.y;
+            
+                inverseMapX.at<float>(target.y, target.x) = rhoIdx;
+                inverseMapY.at<float>(target.y, target.x) = thetaIdx;
             }
         }
     }
@@ -961,6 +967,11 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
     m_mapX2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
     m_mapY2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
     
+    m_inverseMapX1 = cv::Mat::zeros(img1.rows, img1.cols, CV_32FC1);
+    m_inverseMapY1 = cv::Mat::zeros(img1.rows, img1.cols, CV_32FC1);
+    m_inverseMapX2 = cv::Mat::zeros(img1.rows, img1.cols, CV_32FC1);
+    m_inverseMapY2 = cv::Mat::zeros(img1.rows, img1.cols, CV_32FC1);
+    
     {
         cv::Point2d p1 = m_b1, p2 = m_b2;
         cv::Vec3f line1 = m_line1B, line2 = m_line2B;
@@ -973,8 +984,8 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
         double lastCrossProd = 0;
 
         while (true) {
-            transformLine(epipole1, p1, img1, thetaIdx, m_minRho1, m_maxRho1, m_mapX1, m_mapY1);
-            transformLine(epipole2, p2, img2, thetaIdx, m_minRho2, m_maxRho2, m_mapX2, m_mapY2);
+            transformLine(epipole1, p1, img1, thetaIdx, m_minRho1, m_maxRho1, m_mapX1, m_mapY1, m_inverseMapX1, m_inverseMapY1);
+            transformLine(epipole2, p2, img2, thetaIdx, m_minRho2, m_maxRho2, m_mapX2, m_mapY2, m_inverseMapX2, m_inverseMapY2);
             
             cv::Vec3f v0(p1.x - epipole1.x, p1.y - epipole1.y, 1.0);
             v0 /= cv::norm(v0);
@@ -1052,5 +1063,31 @@ void PolarCalibration::getRectifiedImages(const cv::Mat& img1, const cv::Mat& im
     cv::remap(img1, rectified1, m_mapX1, m_mapY1, interpolation, cv::BORDER_TRANSPARENT);
     cv::remap(img2, rectified2, m_mapX2, m_mapY2, interpolation, cv::BORDER_TRANSPARENT);
 }
+
+void PolarCalibration::transformPoints(const vector< cv::Point2d >& points, 
+                                       vector< cv::Point2d >& transformedPoints, const uint8_t & whichImage)
+{
+    cv::Mat * pMapX, * pMapY;
+    if (whichImage == 1) {
+        pMapX = &m_inverseMapX1;
+        pMapY = &m_inverseMapY1;
+    } else if (whichImage == 2) {
+        pMapX = &m_inverseMapX2;
+        pMapY = &m_inverseMapY2;
+    }
+    
+    transformedPoints.clear();
+    transformedPoints.reserve(points.size());
+    for (uint32_t i = 0; i < points.size(); i++) {
+        const cv::Point2d & p = points[i];
+        transformedPoints.push_back(
+                    cv::Point2d(pMapX->at<float>(p.y, p.x), 
+                                pMapY->at<float>(p.y, p.x)));
+                    
+//         cout << points[i] << " --> " << transformedPoints[i] << endl;
+    }
+//     exit(0);
+}
+
 
 

@@ -61,8 +61,9 @@ public:
     
     void getRectifiedImages(const cv::Mat & img1, const cv::Mat & img2, 
                             cv::Mat & rectified1, cv::Mat & rectified2, int interpolation = cv::INTER_CUBIC);
-//     cv::Mat getRectifiedImage1() { return m_rectified1; }
-//     cv::Mat getRectifiedImage2() { return m_rectified2; }
+
+    void transformPoints(const vector< cv::Point2d >& points1, 
+                         vector< cv::Point2d >& transformedPoints1, const uint8_t & whichImage);
 private:
     void determineCommonRegion(const vector<cv::Point2f> &epipoles, 
                                const cv::Size imgDimensions, const cv::Mat & F);
@@ -101,7 +102,8 @@ private:
                        cv::Vec3f prevLine1, cv::Vec3f prevLine2, 
                        cv::Point2d & pNew1, cv::Point2d & pNew2, cv::Vec3f & newLine1, cv::Vec3f & newLine2);
     void transformLine(const cv::Point2d& epipole, const cv::Point2d& p2, const cv::Mat& inputImage, 
-                       const uint32_t & thetaIdx, const double &minRho, const double & maxRho, cv::Mat& mapX, cv::Mat& mapY);
+                       const uint32_t & thetaIdx, const double &minRho, const double & maxRho, 
+                       cv::Mat& mapX, cv::Mat& mapY, cv::Mat& inverseMapX, cv::Mat& inverseMapY);
     void doTransformation(const cv::Mat& img1, const cv::Mat& img2, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F);
     
     // Visualization functions
@@ -127,6 +129,7 @@ private:
     bool m_showCommonRegion, m_showIterations;
     
     cv::Mat m_mapX1, m_mapY1, m_mapX2, m_mapY2;
+    cv::Mat m_inverseMapX1, m_inverseMapY1, m_inverseMapX2, m_inverseMapY2;
     cv::Mat m_rectified1, m_rectified2;
 };
 
