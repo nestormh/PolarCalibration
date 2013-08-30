@@ -63,9 +63,6 @@ bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, cv::Mat
     clock_t end = clock();
     double elapsedFMat = double(end - begin) / CLOCKS_PER_SEC;
     
-//     //cout << "epipole1: " << epipole1 << endl;
-//     //cout << "epipole2: " << epipole2 << endl;
-
     begin = clock();
     // Determine common region
     vector<cv::Vec3f> initialEpilines, finalEpilines;
@@ -79,8 +76,8 @@ bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, cv::Mat
     end = clock();
     double elapsedPolar = double(end - begin) / CLOCKS_PER_SEC;
     
-    //cout << "Time F: " << elapsedFMat << endl;
-    //cout << "Time transformation: " << elapsedPolar << endl;
+    cout << "Time F: " << elapsedFMat << endl;
+    cout << "Time transformation: " << elapsedPolar << endl;
     
     return true;
 }
@@ -90,8 +87,6 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
                                                  vector<cv::Point2f> points1, vector<cv::Point2f> points2, 
                                                  cv::Point2d& epipole1, cv::Point2d& epipole2, const uint32_t method)
 {
-//     vector<cv::Point2f> points1, points2;
-    
     if (F.empty()) {
         switch(method) {
             case FMAT_METHOD_OFLOW:
@@ -105,11 +100,8 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
         if (points1.size() < 8)
             return false;
         
-    //     //cout << "sz = " << points1.size() << endl;
-        
         F = cv::findFundamentalMat(points1, points2, CV_FM_8POINT);
-    //     //cout << "F:\n" << F << endl; 
-        
+
         if (cv::countNonZero(F) == 0)
             return false;
     }
@@ -121,30 +113,31 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
     
     /// NOTE: Remove. Just for debugging (begin)
 //     {
-//         //cout << "***********************" << endl;
-// //         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_T.xml", cv::FileStorage::READ);
-//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/results/mats/lastMat_0925.xml", cv::FileStorage::READ);
+//         cout << "***********************" << endl;
+//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_M.xml", cv::FileStorage::READ);
+// //         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/results/mats/lastMat_0925.xml", cv::FileStorage::READ);
 // //         cv::FileStorage file("/tmp/results/mats/lastMat_0039.xml", cv::FileStorage::READ);
 //         
 //         file["F"] >> F;
 //         file.release();
-//         //cout << "F (from file)\n" << F << endl;
+//         cout << "F (from file)\n" << F << endl;
 //         getEpipoles(F, epipole1, epipole2);
-//         //cout << "epipole1 " << epipole1 << endl;
-//         //cout << "epipole2 " << epipole2 << endl;
+//         cout << "epipole1 " << epipole1 << endl;
+//         cout << "epipole2 " << epipole2 << endl;
 //     }
     /// NOTE: Remove. Just for debugging (end)
     
+    /// NOTE: Remove. Just for debugging (begin)
 //     cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_O.xml", cv::FileStorage::WRITE);
 //     file << "F" << F;
 //     file.release();
+    /// NOTE: Remove. Just for debugging (end)
     
-        if (SIGN(epipole1.x) != SIGN(epipole2.x) &&
-            SIGN(epipole1.y) != SIGN(epipole2.y)) {
-            
-            epipole2 *= -1;
-        }
-            
+    if (SIGN(epipole1.x) != SIGN(epipole2.x) &&
+        SIGN(epipole1.y) != SIGN(epipole2.y)) {
+        
+        epipole2 *= -1;
+    }            
         
     return true;
 }
@@ -262,21 +255,6 @@ inline void PolarCalibration::getEpipoles(const cv::Mat & F, cv::Point2d & epipo
     
     epipole1 = cv::Point2d(e1.at<double>(0, 0) / e1.at<double>(0, 2), e1.at<double>(0, 1) / e1.at<double>(0, 2));
     epipole2 = cv::Point2d(e2.at<double>(0, 0) / e2.at<double>(2, 0), e2.at<double>(1, 0) / e2.at<double>(2, 0));
-
-//     cv::Mat eigenVal, eigenVect;
-//     if (! cv::eigen(F.t() * F, eigenVal,  eigenVect)) {
-//         //cout << "Failure" << endl;
-//         exit(0);
-//     }
-//     
-//     epipole1 = cv::Point2d(eigenVect.at<double>(2, 0) / eigenVect.at<double>(2, 2), eigenVect.at<double>(2, 1) / eigenVect.at<double>(2, 2));
-//     
-//     if (! cv::eigen(F * F.t(), eigenVal,  eigenVect)) {
-//         //cout << "Failure" << endl;
-//         exit(0);
-//     }
-//     
-//     epipole2 = cv::Point2d(eigenVect.at<double>(2, 0) / eigenVect.at<double>(2, 2), eigenVect.at<double>(2, 1) / eigenVect.at<double>(2, 2));
 }
 
 inline void PolarCalibration::checkF(cv::Mat & F, cv::Point2d & epipole1, cv::Point2d & epipole2, const cv::Point2d & m, const cv::Point2d & m1) {
@@ -310,12 +288,8 @@ inline void PolarCalibration::checkF(cv::Mat & F, cv::Point2d & epipole1, cv::Po
     cv::Mat fl = L * M;
     cv::Mat fl1 = L1 * M1;
     
-//     if (((fl.at<double>(0,0) < 0.0) && (fl1.at<double>(0,0) > 0.0)) ||
-//         ((fl.at<double>(0,0) > 0.0) && (fl1.at<double>(0,0) < 0.0))) {
 
     if (SIGN(fl.at<double>(0,0)) != SIGN(fl1.at<double>(0,0))) {
-        //cout << "Test failed" << endl;
-        
         F = -F;
     
         getEpipoles(F, epipole1, epipole2);
@@ -336,7 +310,6 @@ inline bool PolarCalibration::lineIntersectsSegment(const cv::Vec3d & line, cons
     double x = (line[1] * segment[2] - segment[1] * line[2]) / (segment[1] * line[0] - line[1] * segment[0]);
     double y = -(line[0] * x + line[2]) / line[1];
     
-    //cout << "possible intersection at " << cv::Point2d(x, y) << " -- " << m_b1 << endl;
     if (((int32_t)round(x) >= (int32_t)min(p1.x, p2.x)) && ((int32_t)round(x) <= (int32_t)max(p1.x, p2.x))) {
         if (((int32_t)round(y) >= (int32_t)min(p1.y, p2.y)) && ((int32_t)round(y) <= (int32_t)max(p1.y, p2.y))) {
             if (intersection != NULL)
@@ -369,9 +342,7 @@ inline bool PolarCalibration::isTheRightPoint(const cv::Point2d & epipole, const
             return false;
         else
             return true;
-        //cout << "rightPoint" << endl;
     } else {
-        //cout << "***********NULL************" << endl;
         if ((line[0] > 0) && (epipole.y < intersection.y)) return false;
         if ((line[0] < 0) && (epipole.y > intersection.y)) return false;
         if ((line[1] > 0) && (epipole.x > intersection.x)) return false;
@@ -440,79 +411,65 @@ cv::Point2d PolarCalibration::getBorderIntersection(const cv::Point2d & epipole,
     cv::Point2d intersection(-1, -1);
 
     if (IS_INSIDE_IMAGE(epipole, imgDimensions)) {
-        //cout << "INSIDE" << endl;
         if (lineIntersectsSegment(line, cv::Point2d(0, 0), cv::Point2d(imgDimensions.width - 1, 0), &intersection)) {
             if (isTheRightPoint(epipole, intersection, line, lastPoint)) {
-                //cout << "Right point" << endl;
                 
                 return intersection;
             }
         }
         if (lineIntersectsSegment(line, cv::Point2d(imgDimensions.width - 1, 0), cv::Point2d(imgDimensions.width - 1, imgDimensions.height - 1), &intersection)) {
             if (isTheRightPoint(epipole, intersection, line, lastPoint)) {
-                //cout << "Right point" << endl;
 
                 return intersection;
             }
         }
         if (lineIntersectsSegment(line, cv::Point2d(imgDimensions.width - 1, imgDimensions.height - 1), cv::Point2d(0, imgDimensions.height - 1), &intersection)) {
             if (isTheRightPoint(epipole, intersection, line, lastPoint)) {
-                //cout << "Right point" << endl;
                 
                 return intersection;
             }
         }
         if (lineIntersectsSegment(line, cv::Point2d(0, imgDimensions.height - 1), cv::Point2d(0, 0), &intersection)) {
             if (isTheRightPoint(epipole, intersection, line, lastPoint)) {
-                //cout << "Right point" << endl;
                 
                 return intersection;
             }
         }
     } else {
-        //cout << "OUTSIDE" << endl;
         double maxDist = std::numeric_limits<double>::min();
         cv::Point2d tmpIntersection(-1, -1);
         if (lineIntersectsSegment(line, cv::Point2d(0, 0), cv::Point2d(imgDimensions.width - 1, 0), &tmpIntersection)) {
-            //cout << "intersection at AB" << endl;
             const double dist2 = (tmpIntersection.x - epipole.x) * (tmpIntersection.x - epipole.x) +
                                  (tmpIntersection.x - epipole.x) * (tmpIntersection.x - epipole.x);
             
             if (dist2 > maxDist) {
-                //cout << "WINNER" << endl;
                 maxDist = dist2;
                 intersection = tmpIntersection;
             }
         }
         if (lineIntersectsSegment(line, cv::Point2d(imgDimensions.width - 1, 0), cv::Point2d(imgDimensions.width - 1, imgDimensions.height - 1), &tmpIntersection)) {
-            //cout << "intersection at BD" << endl;
             const double dist2 = (tmpIntersection.x - epipole.x) * (tmpIntersection.x - epipole.x) +
             (tmpIntersection.x - epipole.x) * (tmpIntersection.x - epipole.x);
             
             if (dist2 > maxDist) {
-                //cout << "WINNER" << endl;
                 maxDist = dist2;
                 intersection = tmpIntersection;
             }
         }
         if (lineIntersectsSegment(line, cv::Point2d(imgDimensions.width - 1, imgDimensions.height - 1), cv::Point2d(0, imgDimensions.height - 1), &tmpIntersection)) {
-            //cout << "intersection at CD" << endl;
             const double dist2 = (tmpIntersection.x - epipole.x) * (tmpIntersection.x - epipole.x) +
             (tmpIntersection.x - epipole.x) * (tmpIntersection.x - epipole.x);
             
             if (dist2 > maxDist) {
-                //cout << "WINNER" << endl;
                 maxDist = dist2;
                 intersection = tmpIntersection;
             }
         }
         if (lineIntersectsSegment(line, cv::Point2d(0, imgDimensions.height - 1), cv::Point2d(0, 0), &tmpIntersection)) {
-            //cout << "intersection at AC" << endl;
             const double dist2 = (tmpIntersection.x - epipole.x) * (tmpIntersection.x - epipole.x) +
             (tmpIntersection.x - epipole.x) * (tmpIntersection.x - epipole.x);
             
             if (dist2 > maxDist) {
-                //cout << "WINNER" << endl;
                 maxDist = dist2;
                 intersection = tmpIntersection;
             }
@@ -569,9 +526,6 @@ inline void PolarCalibration::getExternalPoints(const cv::Point2d &epipole, cons
             externalPoints[1] = cv::Point2f(imgDimensions.width - 1, 0);
         }
     }
-    
-    //cout << "externalPoints[0] " << externalPoints[0] << endl;
-    //cout << "externalPoints[1] " << externalPoints[1] << endl;
 }
 
 inline void PolarCalibration::computeEpilines(const vector<cv::Point2f> & points, const uint32_t &whichImage, 
@@ -640,26 +594,6 @@ inline void PolarCalibration::determineCommonRegion(const vector<cv::Point2f> &e
         const cv::Vec3f line22 = outputLines[1];
         
         // Beginning and ending lines
-//         if (lineIntersectsRect(line13, imgDimensions)) {
-//             //cout << "Begin1 " << endl;
-//             m_line1B = line13;
-//             m_line2B = line23;
-//         } else {
-//             //cout << "Begin2 " << endl;
-//             m_line1B = line11;
-//             m_line2B = line21;
-//         }
-//         
-//         if (lineIntersectsRect(line14, imgDimensions)) {
-//             //cout << "End 1 " << endl;
-//             m_line1E = line14;
-//             m_line2E = line24;
-//         } else {
-//             //cout << "End 2" << endl;
-//             m_line1E = line12;
-//             m_line2E = line22;
-//         }
-        
         m_line1B = lineIntersectsRect(line13, imgDimensions)? line13 : line11;
         m_line1E = lineIntersectsRect(line14, imgDimensions)? line14 : line12;
         m_line2B = lineIntersectsRect(line21, imgDimensions)? line21 : line23;
@@ -719,11 +653,6 @@ inline void PolarCalibration::determineCommonRegion(const vector<cv::Point2f> &e
             }
         }
         
-//         m_b1 = getBorderIntersectionFromOutside(epipoles[0], m_line1B, imgDimensions);
-//         m_b2 = getBorderIntersectionFromOutside(epipoles[1], m_line2B, imgDimensions);
-//         m_e1 = getBorderIntersectionFromOutside(epipoles[0], m_line1E, imgDimensions);
-//         m_e2 = getBorderIntersectionFromOutside(epipoles[1], m_line2E, imgDimensions);
-        
         if (m_showCommonRegion) {
             showCommonRegion(epipoles[0], line11, line12, line13, line14, m_line1B, m_line1E, m_b1, m_e1, imgDimensions, 
                             externalPoints1, std::string("leftCommonRegion"));
@@ -744,9 +673,7 @@ inline void PolarCalibration::determineCommonRegion(const vector<cv::Point2f> &e
         m_line2E = outputLines[0];
         
         m_b1 = getBorderIntersection(epipoles[0], m_line1B, imgDimensions);
-//         m_b2 = getBorderIntersection(epipoles[1], m_line2B, imgDimensions);
         m_e1 = getBorderIntersection(epipoles[0], m_line1E, imgDimensions);
-//         m_e2 = getBorderIntersection(epipoles[1], m_line2E, imgDimensions);
         
         m_b2 = m_e2 = getNearestIntersection(epipoles[0], epipoles[1], m_line2B, m_b1, imgDimensions);
                 
@@ -916,17 +843,10 @@ inline void PolarCalibration::getNewPointAndLineSingleImage(const cv::Point2d ep
     vCurr /= cv::norm(vCurr);
     vEnd /= cv::norm(vEnd);
     
-    //cout << "epipole1 " << epipole1 << endl;
-    //cout << "epipole2 " << epipole2 << endl;
-    //cout << "[nextEpiline] vCurr " << vCurr << endl;
-    
     if (IS_INSIDE_IMAGE(epipole1, imgDimensions)) {
         if (IS_INSIDE_IMAGE(epipole2, imgDimensions)) {
-            //cout << "CASE1" << endl;
             v = cv::Vec2f(vCurr[1], -vCurr[0]);
-            //cout << "[nextEpiline] v " << v << endl;
         } else {
-            //cout << "CASE3" << endl;
             vBegin = cv::Vec3f(m_b2.x - epipole2.x, m_b2.y - epipole2.y, 0.0);
             vCurr = cv::Vec3f(pOld2.x - epipole2.x, pOld2.y - epipole2.y, 0.0);
             vEnd = cv::Vec3f(m_e2.x - epipole2.x, m_e2.y - epipole2.y, 0.0);
@@ -938,116 +858,27 @@ inline void PolarCalibration::getNewPointAndLineSingleImage(const cv::Point2d ep
             const cv::Vec3f vCross = vBegin.cross(vEnd);
             
             v = cv::Vec2f(vCurr[1], -vCurr[0]);
-            //cout << "[newEpiline] //////////////////////////" << endl;
-            //cout << "[newEpiline] v " << v << endl;
             if (vCross[2] > 0.0) {
                 v = -v;
             }
-            //cout << "[newEpiline] vBegin " << vBegin << endl;
-            //cout << "[newEpiline] vEnd " << vEnd << endl;
-            //cout << "[newEpiline] v " << v << endl;
-            //cout << "[newEpiline] vCross " << vCross << endl;
-//                 exit(0);
         }
     } else {
-        //cout << "CASE2" << endl;
         const cv::Vec3f vCross = vBegin.cross(vEnd);
     
         v = cv::Vec2f(vCurr[1], -vCurr[0]);
-        //cout << "vPrev " << v << endl;
         if (vCross[2] > 0.0) {
             v = -v;
         }
-        //cout << "vCross " << vCross << endl;
     }
-    //cout << "vBegin " << vBegin << endl;
-    //cout << "vEnd " << vEnd << endl;
-    //cout << "v " << v << endl;
 
-    pNew1 = cv::Point2d(pOld1.x + v[0] * m_stepSize, pOld1.y + v[1] * m_stepSize);
-//     double distPOld = cv::norm(epipole1 - pOld1);
-//     cv::Point2d startingPoint(epipole1.x + vCurr[0] * distPOld, epipole1.y + vCurr[1] * distPOld);
-//     pNew1 = cv::Point2d(startingPoint.x + v[0] * m_stepSize, startingPoint.y + v[1] * m_stepSize);
-    //cout << "epipole1 " << epipole1 << endl;
-    //cout << "epipole2 " << epipole2 << endl;
-    //cout << "pOld1 " << pOld1 << endl;
-    //cout << "m_e1 " << m_e1 << endl;
-    //cout << "prevLine " << prevLine << endl;
-    //cout << "[nextEpiline] Testing " << pNew1 << " from " << pOld1 << endl;
-    
-    
+    pNew1 = cv::Point2d(pOld1.x + v[0] * m_stepSize, pOld1.y + v[1] * m_stepSize);    
     newLine1 = GET_LINE_FROM_POINTS(epipole1, pNew1);
-    //cout << "[nextEpiline] newLine1 " << newLine1 << endl;
+
     if (! IS_INSIDE_IMAGE(epipole1, imgDimensions)) {
         pNew1 = getBorderIntersection(epipole1, newLine1, imgDimensions, &pOld1);
     } else {
         pNew1 = getNearestIntersection(epipole1, epipole1, newLine1, pOld1, imgDimensions);
-        /*vector <cv::Point2d> intersections;
-        getBorderIntersections(epipole1, newLine1, imgDimensions, intersections);
-        pNew1 = cv::Point2d(-1, -1);
-        
-//         cv::Vec3d v0(intersections[0].x - epipole1.x, intersections[0].y - epipole1.y, 0.0);
-//         cv::Vec3d v1(intersections[1].x - epipole1.x, intersections[1].y - epipole1.y, 0.0);
-//         cv::Vec3d v2(pOld1.x - epipole1.x, pOld1.y - epipole1.y, 0.0);
-//         
-//         v0 /= cv::norm(v0);
-//         v1 /= cv::norm(v1);
-//         v2 /= cv::norm(v2);
-//         
-//         //cout << "[nextIt] int0 " << intersections[0] << endl;
-//         //cout << "[nextIt] int1 " << intersections[1] << endl;
-//         //cout << "[nextIt] acos0 " << acos(v0.dot(v2)) << endl;
-//         //cout << "[nextIt] acos1 " << acos(v1.dot(v2)) << endl;
-//         
-//         if (acos(v0.dot(v2)) > acos(v1.dot(v2))) {
-//             pNew1 = intersections[1];
-//         } else if (acos(v0.dot(v2)) > acos(v1.dot(v2))) {
-//             
-//         }
-        
-//         double dist1 = cv::norm(pOld1 - intersections[0]);
-//         double dist2 = cv::norm(pOld1 - intersections[1]);
-        
-//         cv::Vec3d v0(intersections[0].x - epipole1.x, intersections[0].y - epipole1.y, 0.0);
-        cv::Vec3f vOld(pOld1.x - epipole1.x, pOld1.y - epipole1.y, 0.0);
-        cv::Vec3f vDir(v[0], v[1], 0.0);
-        
-//         v0 /= cv::norm(v0);
-        vOld /= cv::norm(vOld);
-        vDir /= cv::norm(vDir);
-        
-        //cout << "nextEpiline vOld " << vOld << endl;
-        //cout << "nextEpiline vDir " << vDir << endl;
-        cv::Vec3f vCross1 = vOld.cross(cv::Vec3f(vDir));
-        for (uint32_t i = 0; i < intersections.size(); i++) {
-            cv::Vec3f vNew(intersections[i].x - epipole1.x, intersections[i].y - epipole1.y, 0.0);
-            vNew /= cv::norm(vNew);
-            cv::Vec3f vCross2 = vOld.cross(vNew);
-            //cout << "nextEpiline vNew " << vNew << endl;
-            
-            //cout << "nextEpiline vCross1 " << vCross1 << endl;
-            //cout << "nextEpiline vCross2 " << vCross2 << endl;
-            //cout << "nextEpiline intersections[1] " << intersections[1] << endl;
-            //cout << "nextEpiline intersections[0] " << intersections[0] << endl;
-            
-            if (SIGN(vOld.cross(vDir)[2]) == SIGN(vOld.cross(vNew)[2])) {
-                pNew1 = intersections[i];
-                break;
-            }
-        }*/
-        
-//         double minDist = std::numeric_limits<double>::max();
-//         for (uint32_t i = 0; i < intersections.size(); i++) {
-//             const double dist = (pOld1.x - intersections[i].x) * (pOld1.x - intersections[i].x) +
-//                                 (pOld1.y - intersections[i].y) * (pOld1.y - intersections[i].y);
-//             if (minDist > dist) {
-//                 minDist = dist;
-//                 pNew1 = intersections[i];
-//             }
-//         }
     }
-    
-    //cout << "new intersection: " << pNew1 << endl;
 
     vector<cv::Point2f> points(1);
     points[0] = pNew1;
@@ -1062,20 +893,8 @@ inline void PolarCalibration::getNewPointAndLineSingleImage(const cv::Point2d ep
         pNew2 = tmpPoint;
     } else {
         vector <cv::Point2d> intersections;
-        getBorderIntersections(epipole2, newLine2, imgDimensions, intersections);
-        
+        getBorderIntersections(epipole2, newLine2, imgDimensions, intersections);        
         pNew2 = intersections[0];
-//         cv::Vec3d v0(intersections[0].x - epipole2.x, intersections[0].y - epipole2.y, 0.0);
-//         cv::Vec3d v1(intersections[1].x - epipole2.x, intersections[1].y - epipole2.y, 0.0);
-//         cv::Vec3d v2(pOld2.x - epipole2.x, pOld2.y - epipole2.y, 0.0);
-//         
-//         v0 /= cv::norm(v0);
-//         v1 /= cv::norm(v1);
-//         v2 /= cv::norm(v2);
-//         
-//         if (fabs(acos(v0.dot(v2))) > fabs(acos(v1.dot(v2)))) {
-//             pNew2 = intersections[1];
-//         }
         
         double minDist = std::numeric_limits<double>::max();
         for (uint32_t i = 0; i < intersections.size(); i++) {
@@ -1097,7 +916,7 @@ inline void PolarCalibration::getNewEpiline(const cv::Point2d epipole1, const cv
     
     getNewPointAndLineSingleImage(epipole1, epipole2, imgDimensions, F, 1, pOld1, pOld2, prevLine1, pNew1, newLine1, pNew2, newLine2);
     
-    // If the distance is too big in image 2, we do it in the opposite sense
+    //TODO If the distance is too big in image 2, we do it in the opposite sense
 //     double distImg2 = (pOld2.x - pNew2.x) * (pOld2.x - pNew2.x) + (pOld2.y - pNew2.y) * (pOld2.y - pNew2.y);
 //     if (distImg2 > m_stepSize * m_stepSize)
 //         getNewPointAndLineSingleImage(epipole2, epipole1, imgDimensions, F, 2, pOld2, pOld1, prevLine2, pNew2, newLine2, pNew1, newLine1);
@@ -1142,9 +961,6 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
     m_mapX2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
     m_mapY2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
     
-    //TODO: Remove
-//     m_b1 = cv::Point2d(360, 0);
-    
     {
         cv::Point2d p1 = m_b1, p2 = m_b2;
         cv::Vec3f line1 = m_line1B, line2 = m_line2B;
@@ -1154,46 +970,12 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
             crossesLeft++;
         
         uint32_t thetaIdx = 0;
-        double lastAngle = std::numeric_limits< double >::min();
-        double lastAngleIncrement = 0.0;
-        bool hadNegativeIncr = false;
-        cv::Vec3d lastVector(0, 0, 0);
-        cv::Vec3d lastDirection(0, 0, 0);
-        double lastIncrement = 0.0;
-        
-        bool lastReached = false;
         double lastCrossProd = 0;
-//         bool lastDirection = false;
+
         while (true) {
             transformLine(epipole1, p1, img1, thetaIdx, m_minRho1, m_maxRho1, m_mapX1, m_mapY1);
             transformLine(epipole2, p2, img2, thetaIdx, m_minRho2, m_maxRho2, m_mapX2, m_mapY2);
             
-            // TODO: Visualize while doing the transformation. I'm not planning to do that unless I
-            // need it due to a bug
-//             if (m_showIterations) {
-//                 cv::Size newSize;
-//                 if (m_mapX1.cols > m_mapX1.rows) {
-//                     newSize = cv::Size(600, 600 * (thetaIdx + 100) / (m_maxRho1 - m_minRho1));
-//                 } else {
-//                     newSize = cv::Size(600 * (m_maxRho1 - m_minRho1) / (thetaIdx + 100), 600);
-//                 }
-// 
-//                 //cout << "thetaIdx " << thetaIdx << endl;
-//                 //cout << "rho " << (m_maxRho1 - m_minRho1) << endl;
-//                 //cout << "newSize " << newSize << endl;
-//                 
-// //                 exit(0);
-//                 
-//                 cv::Mat rectified1, rectified2;
-//                 cv::Mat scaled1, scaled2;
-//                 getRectifiedImages(img1, img2, rectified1, rectified2);
-//                 cv::resize(rectified1, scaled1, newSize);
-//                 cv::resize(rectified2, scaled2, newSize);
-//                 const double proportion = (2 * (img1.rows + img1.cols)) / (maxRho - minRho + 1);
-//                 cv::imshow("outputImage1", scaled1);
-//                 cv::imshow("outputImage2", scaled2);
-//             }
-
             cv::Vec3f v0(p1.x - epipole1.x, p1.y - epipole1.y, 1.0);
             v0 /= cv::norm(v0);
             cv::Point2d oldP1 = p1;
@@ -1208,127 +990,18 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
             cv::Vec3f v3(oldP1.x - epipole1.x, oldP1.y - epipole1.y, 0.0);
             v3 /= cv::norm(v3);
             
-            //cout << "v1 " << v1 << ", v2 " << v2 << ", v3 " << v3 << endl;
-            //cout << "p1 " << p1 << ", m_e1 " << m_e1 << endl;
-//             double angle = acos(v1.dot(v2));
-//             double angleIncrement = angle - lastAngle;
-            
-//             cv::Vec3f currVector = v1.cross(v2);
-            
-            bool reached = REACHED(v1, v2); 
             double crossProd = v1.cross(v2)[2];
-            double angle = fabs(acos(v0.dot(v1)));
-            double angleIncrement = angle-lastAngle;
-//             //cout << "REACHED " << v1.cross(v2) << " == " << REACHED(v1, v2) << endl;
-            //cout << "crossProd " << crossProd << ", lastCrossProd " << lastCrossProd << ", angle " << angle * 180 / CV_PI << endl;
-//             //cout << "angleIncrement " << angleIncrement << ", lastAngleIncrement " << lastAngleIncrement << endl;
-//             //cout << "oldP1 " << oldP1 << ", p1 " << p1 << ", cond " << (IS_A_CORNER(oldP1, img1.size()) && IS_A_CORNER(p1, img1.size()) && (cv::norm(p1 - oldP1) > 1.1)) << endl;
+
             if (thetaIdx != 0) {
-                if (crossProd < 5.0) {
-                    //cout << "Reaching " << endl;
-                    if ((SIGN(lastCrossProd) != SIGN(crossProd))  || (p1 == cv::Point2d(-1, -1)) || (fabs(acos(v1.dot(-v3))) < 0.01))
-//                         (IS_A_CORNER(oldP1, img1.size()) && IS_A_CORNER(p1, img1.size()) && (cv::norm(p1 - oldP1) > 1.1)))
-                        crossesLeft--;
-                    //cout << "crossesLeft " << crossesLeft << endl;
-                    if ((crossesLeft < 0)) {
-                        //cout << "FINISHED!!!!" << endl;
-                        break;
-                    }
-                }
-//                 if (lastReached != reached)
-//                 if (lastReached && !reached)
-//                     crossesLeft--;
-//                 double angleIncrement = currVector[2] - lastVector[2];
-//                 if (thetaIdx > 1) {
-// //                     //cout << "lastVector " << lastVector[2] << ", increment " << angleIncrement << ", lastIncrement " << lastIncrement << endl;
-//                     //cout << "[DEBUG] lastVector " << lastVector[2] << ", currVector[2] " << currVector[2] << endl;
-// //                     if ((lastVector[2] < 0.01) && (SIGN(angleIncrement) != SIGN(lastIncrement)))
-//                     if (SIGN(lastVector[2]) != SIGN(currVector[2]))
-//                         crossesLeft--;
-//                     //cout << "[DEBUG] crossesLeft " << crossesLeft << endl;
-//                     }
-// //                     //cout << crossesLeft << endl;
-//                 }
-//                 lastIncrement = angleIncrement;
-            }
-            lastReached = reached;
-            lastCrossProd = crossProd;
-            lastAngle = angle;
-            lastAngleIncrement = angleIncrement;
-//             lastVector = currVector;
-        
-//             double angleIncrement = angle - lastAngle;
-            
-            
-//             if (SIGN(lastAngleIncrement) != SIGN(angleIncrement)) {
-//                 //cout << "crossesLeft " << crossesLeft << endl;
-//                 if (crossesLeft == 0) {
-//                     break;
-//                 } else {
-//                     crossesLeft--;
-//                 }
-//             }
-            
-//             if (angleIncrement < 0) 
-//                 hadNegativeIncr = true;
-            
-//             //cout << "angle " << angle << endl;
-//             //cout << "angleIncrement " << angleIncrement << endl;
-            
-//             cv::Point2d intersection;
-//             getBorderIntersection(epipole1, line1, img1.size(), &intersection);
-            /*cv::Vec3d currVector(m_e1.x - p1.x, m_e1.y - p1.y, 0.0);
-            currVector /= cv::norm(currVector);
-            
-            //cout << "[ENDING] lastDirection " << lastDirection << endl;
-            //cout << "[ENDING] lastVector " << lastVector << endl;
-            //cout << "[ENDING] currVector " << currVector << endl;
-            
-            if (cv::norm(lastVector) != 0.0) {
-                const cv::Vec3d & currDirection = currVector.cross(lastVector);
-                //cout << "[ENDING] currDirection " << currDirection << endl;
-                if (cv::norm(lastDirection) != 0.0) {
-                    if (SIGN(currDirection[2]) != SIGN(lastDirection[2])) {
-//                         if (cv::norm(p1 - m_e1) < 5.0) {
-                            //cout << "FINISHED!!!" << endl;
-                            break;
-//                         }
-                    }
-                } else {
-                    //cout << "[ENDING] No last direction!!!" << endl;
-                }
-                lastDirection = currDirection;
-            } else {
-                //cout << "[ENDING] No last vector!!!" << endl;
-            }
-            lastVector = currVector;
-            //cout << "[ENDING] lastDirection2 " << lastDirection << endl;
-            //cout << "[ENDING] lastVector2 " << lastVector << endl;
-            //cout << "[ENDING] ********************* " << endl;*/
-            
-            
-//             if ((cv::norm(p1 - m_e1) < 5.0) || (cv::norm(p2 - m_e2) < 5.0)) {
-//                 //cout << "FINISHED!!!" << endl;
-//                 break;
-//             }
-                
-            
-            
-            /*if (SIGN(lastAngleIncrement) != SIGN(angleIncrement)) {
-                //cout << "crossesLeft " << crossesLeft << endl;
-                if (crossesLeft == 0) {
-//                     break;
-                } else {
+                if ((SIGN(lastCrossProd) != SIGN(crossProd)) || (fabs(acos(v1.dot(-v3))) < 0.01) || (p1 == cv::Point2d(-1, -1)))
                     crossesLeft--;
+
+                if ((crossesLeft < 0)) {
+                    break;
                 }
-            }*/
-//             if ((angleIncrement >= 0.0) && hadNegativeIncr) {
-//                 //cout << "FINISHED!!!" << endl;
-//                 break;
-//             }
+            }
+            lastCrossProd = crossProd;
             thetaIdx++;
-//             lastAngle = angle;
-//             lastAngleIncrement = angleIncrement;
 
             if (m_showIterations) {
                 int keycode = cv::waitKey(0);
@@ -1371,8 +1044,6 @@ void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2
         m_mapX2 = m_mapX2(cv::Range(0, thetaIdx), cv::Range::all());
         m_mapY2 = m_mapY2(cv::Range(0, thetaIdx), cv::Range::all());
     }
-    
-//     getRectifiedImages(img1, img2, m_rectified1, m_rectified2);
 }
 
 void PolarCalibration::getRectifiedImages(const cv::Mat& img1, const cv::Mat& img2, 

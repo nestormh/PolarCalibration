@@ -28,8 +28,6 @@ using namespace std;
 
 #define SIGN(val) (bool)(val >= 0.0)
 
-#define REACHED(v1, v2) (bool)(v1.cross(v2)[2] < 0.5)
-
 #define IS_INSIDE_IMAGE(point, imgDimensions) \
     ((point.x >= 0) && (point.y >= 0) && \
     (point.x < (imgDimensions.width - 1.0)) && (point.y <= (imgDimensions.height - 1.0)))
@@ -38,10 +36,6 @@ using namespace std;
 #define GET_LINE_FROM_POINTS(point1, point2) \
     cv::Vec3f(point1.y - point2.y, point2.x - point1.x, point1.x * point2.y - point2.x * point1.y)
     
-#define IS_A_CORNER(point, imgDimensions) \
-    (bool)(((uint32_t)point.x == 0) || ((uint32_t)point.x == imgDimensions.width - 1)) && \
-          (((uint32_t)point.y == 0) || ((uint32_t)point.y == imgDimensions.height - 1))
-
 class PolarCalibration
 {
 public:
