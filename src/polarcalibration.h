@@ -32,7 +32,7 @@ using namespace std;
 
 #define IS_INSIDE_IMAGE(point, imgDimensions) \
     ((point.x >= 0) && (point.y >= 0) && \
-    (point.x < imgDimensions.width) && (point.y < imgDimensions.height))
+    (point.x < (imgDimensions.width - 1.0)) && (point.y <= (imgDimensions.height - 1.0)))
     
 // (py – qy)x + (qx – px)y + (pxqy – qxpy) = 0
 #define GET_LINE_FROM_POINTS(point1, point2) \
@@ -93,6 +93,7 @@ private:
                                       const cv::Point2d * lastPoint = NULL);        
     void getBorderIntersections(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions, 
                                 vector<cv::Point2d> & intersections);
+    cv::Point2d getBorderIntersectionFromOutside(const cv::Point2d & epipole, const cv::Vec3d & line, const cv::Size & imgDimensions);
     void computeEpilines(const vector<cv::Point2f> & points, const uint32_t &whichImage, 
                         const cv::Mat & F, const vector <cv::Vec3f> & oldlines, vector <cv::Vec3f> & newLines);
     void getNewPointAndLineSingleImage(const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Size & imgDimensions, 
