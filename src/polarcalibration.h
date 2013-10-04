@@ -61,10 +61,22 @@ public:
     
     void getRectifiedImages(const cv::Mat & img1, const cv::Mat & img2, 
                             cv::Mat & rectified1, cv::Mat & rectified2, int interpolation = cv::INTER_CUBIC);
-
+    
     void transformPoints(const vector< cv::Point2d >& points1, 
                          vector< cv::Point2d >& transformedPoints1, const uint8_t & whichImage);
-private:
+    
+    void rectifyAndStoreImages(const cv::Mat & img1, const cv::Mat & img2, int interpolation = cv::INTER_CUBIC);
+    
+    bool getStoredRectifiedImages(cv::Mat & img1, cv::Mat & img2);
+    
+//     bool transformPoints(const cv::Mat & Fin, const vector<cv::Point2f> & ctrlPoints1, const vector<cv::Point2f> & ctrlPoints2, 
+//                          const cv::Size & imgDimensions, 
+//                          const vector< cv::Point2d >& points1, const vector< cv::Point2d >& points2, 
+//                          vector< cv::Point2d >& transformedPoints1, vector< cv::Point2d >& transformedPoints2);
+    
+    void getMaps(cv::Mat & mapX, cv::Mat & mapY, const uint8_t & whichImage);
+    void getInverseMaps(cv::Mat & mapX, cv::Mat & mapY, const uint8_t & whichImage);
+protected:
     void determineCommonRegion(const vector<cv::Point2f> &epipoles, 
                                const cv::Size imgDimensions, const cv::Mat & F);
     void determineRhoRange(const cv::Point2d &epipole, const cv::Size imgDimensions,
@@ -105,6 +117,13 @@ private:
                        const uint32_t & thetaIdx, const double &minRho, const double & maxRho, 
                        cv::Mat& mapX, cv::Mat& mapY, cv::Mat& inverseMapX, cv::Mat& inverseMapY);
     void doTransformation(const cv::Mat& img1, const cv::Mat& img2, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F);
+    void getTransformationPoints(const cv::Size & imgDimensions, 
+                                 const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F);
+    
+    /*bool isVectorBetweenVectors(const cv::Vec3f & v, const cv::Vec3f & v1, const cv::Vec3f & v2);
+    bool findThetaIdx(const cv::Point2d& epipole, const cv::Point2d &queryPoint, 
+                        const vector<cv::Point2d> & thetaPoints, 
+                      const uint32_t& minIdx, const uint32_t& maxIdx, double & thetaIdx);*/
     
     // Visualization functions
     cv::Point2d image2World(const cv::Point2d & point, const cv::Size & imgDimensions);
@@ -131,6 +150,8 @@ private:
     cv::Mat m_mapX1, m_mapY1, m_mapX2, m_mapY2;
     cv::Mat m_inverseMapX1, m_inverseMapY1, m_inverseMapX2, m_inverseMapY2;
     cv::Mat m_rectified1, m_rectified2;
+    
+    vector<cv::Point2d> m_thetaPoints1, m_thetaPoints2;
 };
 
 #endif // POLARCALIBRATION_H

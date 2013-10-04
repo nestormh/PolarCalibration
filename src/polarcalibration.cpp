@@ -20,7 +20,6 @@
 #include <boost/concept_check.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
-#include <time.h>
 #include <omp.h>
 
 #include "polarcalibration.h"
@@ -54,18 +53,12 @@ bool PolarCalibration::compute(const cv::Mat& img1distorted, const cv::Mat& img2
 
 bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, cv::Mat F, 
                                vector< cv::Point2f > points1, vector< cv::Point2f > points2, const uint32_t method)
-{
-    clock_t begin = clock();
-    
+{    
 //     cv::Mat F;
     cv::Point2d epipole1, epipole2;
     if (! findFundamentalMat(img1, img2, F, points1, points2, epipole1, epipole2, method))
         return false;
 
-    clock_t end = clock();
-    double elapsedFMat = double(end - begin) / CLOCKS_PER_SEC;
-    
-    begin = clock();
     // Determine common region
     vector<cv::Vec3f> initialEpilines, finalEpilines;
     vector<cv::Point2f> epipoles(2);
@@ -73,14 +66,9 @@ bool PolarCalibration::compute(const cv::Mat& img1, const cv::Mat& img2, cv::Mat
     epipoles[1] = epipole2;    
     determineCommonRegion(epipoles, cv::Size(img1.cols, img1.rows), F);
     
+    getTransformationPoints(img1.size(), epipole1, epipole2, F);
     doTransformation(img1, img2, epipole1, epipole2, F);
-    
-    end = clock();
-    double elapsedPolar = double(end - begin) / CLOCKS_PER_SEC;
-    
-    cout << "Time F: " << elapsedFMat << endl;
-    cout << "Time transformation: " << elapsedPolar << endl;
-    
+        
     return true;
 }
 
@@ -116,7 +104,7 @@ inline bool PolarCalibration::findFundamentalMat(const cv::Mat& img1, const cv::
     /// NOTE: Remove. Just for debugging (begin)
 //     {
 //         cout << "***********************" << endl;
-//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_M.xml", cv::FileStorage::READ);
+//         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/lastMat_I.xml", cv::FileStorage::READ);
 // //         cv::FileStorage file("/home/nestor/Dropbox/KULeuven/projects/PolarCalibration/testing/results/mats/lastMat_0925.xml", cv::FileStorage::READ);
 // //         cv::FileStorage file("/tmp/results/mats/lastMat_0039.xml", cv::FileStorage::READ);
 //         
@@ -955,105 +943,116 @@ inline void PolarCalibration::transformLine(const cv::Point2d& epipole, const cv
     }
 }
 
+void PolarCalibration::getTransformationPoints(const cv::Size& imgDimensions, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat& F)
+{
+    cv::Point2d p1 = m_b1, p2 = m_b2;
+    cv::Vec3f line1 = m_line1B, line2 = m_line2B;
+    
+    m_thetaPoints1.clear();
+    m_thetaPoints2.clear();
+    m_thetaPoints1.reserve(2 * (imgDimensions.width + imgDimensions.height));
+    m_thetaPoints2.reserve(2 * (imgDimensions.width + imgDimensions.height));
+    
+    int32_t crossesLeft = 0;
+    if (IS_INSIDE_IMAGE(epipole1, imgDimensions) && IS_INSIDE_IMAGE(epipole2, imgDimensions))
+        crossesLeft++;
+    
+    uint32_t thetaIdx = 0;
+    double lastCrossProd = 0;
+    
+    while (true) {
+        m_thetaPoints1.push_back(p1);
+        m_thetaPoints2.push_back(p2);
+//         transformLine(epipole1, p1, img1, thetaIdx, m_minRho1, m_maxRho1, m_mapX1, m_mapY1, m_inverseMapX1, m_inverseMapY1);
+//         transformLine(epipole2, p2, img2, thetaIdx, m_minRho2, m_maxRho2, m_mapX2, m_mapY2, m_inverseMapX2, m_inverseMapY2);
+        
+        cv::Vec3f v0(p1.x - epipole1.x, p1.y - epipole1.y, 1.0);
+        v0 /= cv::norm(v0);
+        cv::Point2d oldP1 = p1;
+        
+        getNewEpiline(epipole1, epipole2, imgDimensions, F, p1, p2, line1, line2, p1, p2, line1, line2);
+        
+        // Check if we reached the end
+        cv::Vec3f v1(p1.x - epipole1.x, p1.y - epipole1.y, 0.0);
+        v1 /= cv::norm(v1);
+        cv::Vec3f v2(m_e1.x - epipole1.x, m_e1.y - epipole1.y, 0.0);
+        v2 /= cv::norm(v2);
+        cv::Vec3f v3(oldP1.x - epipole1.x, oldP1.y - epipole1.y, 0.0);
+        v3 /= cv::norm(v3);
+        
+        double crossProd = v1.cross(v2)[2];
+        
+        if (thetaIdx != 0) {
+            if ((SIGN(lastCrossProd) != SIGN(crossProd)) || (fabs(acos(v1.dot(-v3))) < 0.01) || (p1 == cv::Point2d(-1, -1)))
+                crossesLeft--;
+            
+            if ((crossesLeft < 0)) {
+                break;
+            }
+        }
+        lastCrossProd = crossProd;
+        thetaIdx++;
+        
+        if (m_showIterations) {
+            int keycode = cv::waitKey(0);
+            
+            // q: exit
+            if (keycode == 113) {
+                exit(0);
+            }
+            // 1: stepSize = 1
+            if (keycode == 49) {
+                m_stepSize = 1;
+            }
+            // 2: stepSize = 50
+            if (keycode == 50) {
+                m_stepSize = 10;
+            }
+            // 3: stepSize = 50
+            if (keycode == 51) {
+                m_stepSize = 50;
+            }
+            // 4: stepSize = 100
+            if (keycode == 51) {
+                m_stepSize = 100;
+            }
+            // n: next image
+            if (keycode == 110) {
+                break;
+            }
+            // r: reset current image
+            if (keycode == 114) {
+                p1 = m_b1;
+                p2 = m_b2;
+                line1 = m_line1B;
+                line2 = m_line2B;
+            }
+        }
+    }
+    m_thetaPoints1.pop_back();
+    m_thetaPoints2.pop_back();
+}
+
 void PolarCalibration::doTransformation(const cv::Mat& img1, const cv::Mat& img2, const cv::Point2d epipole1, const cv::Point2d epipole2, const cv::Mat & F) {
-   
+    
     const double rhoRange1 = m_maxRho1 - m_minRho1 + 1;
     const double rhoRange2 = m_maxRho2 - m_minRho2 + 1;
     
     const double rhoRange = max(rhoRange1, rhoRange2);
     
-    m_mapX1 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
-    m_mapY1 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
-    m_mapX2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
-    m_mapY2 = cv::Mat::zeros(2 * (img1.rows + img1.cols), rhoRange, CV_32FC1);
+    m_mapX1 = cv::Mat::ones(m_thetaPoints1.size(), rhoRange, CV_32FC1) * -1;
+    m_mapY1 = cv::Mat::ones(m_thetaPoints1.size(), rhoRange, CV_32FC1) * -1;
+    m_mapX2 = cv::Mat::ones(m_thetaPoints2.size(), rhoRange, CV_32FC1) * -1;
+    m_mapY2 = cv::Mat::ones(m_thetaPoints2.size(), rhoRange, CV_32FC1) * -1;
     
-    m_inverseMapX1 = cv::Mat::zeros(img1.rows, img1.cols, CV_32FC1);
-    m_inverseMapY1 = cv::Mat::zeros(img1.rows, img1.cols, CV_32FC1);
-    m_inverseMapX2 = cv::Mat::zeros(img1.rows, img1.cols, CV_32FC1);
-    m_inverseMapY2 = cv::Mat::zeros(img1.rows, img1.cols, CV_32FC1);
+    m_inverseMapX1 = cv::Mat::ones(img1.rows, img1.cols, CV_32FC1) * -1;
+    m_inverseMapY1 = cv::Mat::ones(img1.rows, img1.cols, CV_32FC1) * -1;
+    m_inverseMapX2 = cv::Mat::ones(img1.rows, img1.cols, CV_32FC1) * -1;
+    m_inverseMapY2 = cv::Mat::ones(img1.rows, img1.cols, CV_32FC1) * -1;
     
-    {
-        cv::Point2d p1 = m_b1, p2 = m_b2;
-        cv::Vec3f line1 = m_line1B, line2 = m_line2B;
-
-        int32_t crossesLeft = 0;
-        if (IS_INSIDE_IMAGE(epipole1, img1.size()) && IS_INSIDE_IMAGE(epipole2, img2.size()))
-            crossesLeft++;
-        
-        uint32_t thetaIdx = 0;
-        double lastCrossProd = 0;
-
-        while (true) {
-            transformLine(epipole1, p1, img1, thetaIdx, m_minRho1, m_maxRho1, m_mapX1, m_mapY1, m_inverseMapX1, m_inverseMapY1);
-            transformLine(epipole2, p2, img2, thetaIdx, m_minRho2, m_maxRho2, m_mapX2, m_mapY2, m_inverseMapX2, m_inverseMapY2);
-            
-            cv::Vec3f v0(p1.x - epipole1.x, p1.y - epipole1.y, 1.0);
-            v0 /= cv::norm(v0);
-            cv::Point2d oldP1 = p1;
-            
-            getNewEpiline(epipole1, epipole2, cv::Size(img1.cols, img1.rows), F, p1, p2, line1, line2, p1, p2, line1, line2);
-
-            // Check if we reached the end
-            cv::Vec3f v1(p1.x - epipole1.x, p1.y - epipole1.y, 0.0);
-            v1 /= cv::norm(v1);
-            cv::Vec3f v2(m_e1.x - epipole1.x, m_e1.y - epipole1.y, 0.0);
-            v2 /= cv::norm(v2);
-            cv::Vec3f v3(oldP1.x - epipole1.x, oldP1.y - epipole1.y, 0.0);
-            v3 /= cv::norm(v3);
-            
-            double crossProd = v1.cross(v2)[2];
-
-            if (thetaIdx != 0) {
-                if ((SIGN(lastCrossProd) != SIGN(crossProd)) || (fabs(acos(v1.dot(-v3))) < 0.01) || (p1 == cv::Point2d(-1, -1)))
-                    crossesLeft--;
-
-                if ((crossesLeft < 0)) {
-                    break;
-                }
-            }
-            lastCrossProd = crossProd;
-            thetaIdx++;
-
-            if (m_showIterations) {
-                int keycode = cv::waitKey(0);
-                
-                // q: exit
-                if (keycode == 113) {
-                    exit(0);
-                }
-                // 1: stepSize = 1
-                if (keycode == 49) {
-                    m_stepSize = 1;
-                }
-                // 2: stepSize = 50
-                if (keycode == 50) {
-                    m_stepSize = 10;
-                }
-                // 3: stepSize = 50
-                if (keycode == 51) {
-                    m_stepSize = 50;
-                }
-                // 4: stepSize = 100
-                if (keycode == 51) {
-                    m_stepSize = 100;
-                }
-                // n: next image
-                if (keycode == 110) {
-                    break;
-                }
-                // r: reset current image
-                if (keycode == 114) {
-                    p1 = m_b1;
-                    p2 = m_b2;
-                    line1 = m_line1B;
-                    line2 = m_line2B;
-                }
-            }
-        }
-        m_mapX1 = m_mapX1(cv::Range(0, thetaIdx), cv::Range::all());
-        m_mapY1 = m_mapY1(cv::Range(0, thetaIdx), cv::Range::all());
-        m_mapX2 = m_mapX2(cv::Range(0, thetaIdx), cv::Range::all());
-        m_mapY2 = m_mapY2(cv::Range(0, thetaIdx), cv::Range::all());
+    for (uint32_t thetaIdx = 0; thetaIdx < m_thetaPoints1.size(); thetaIdx++) {
+        transformLine(epipole1, m_thetaPoints1[thetaIdx], img1, thetaIdx, m_minRho1, m_maxRho1, m_mapX1, m_mapY1, m_inverseMapX1, m_inverseMapY1);
+        transformLine(epipole2, m_thetaPoints2[thetaIdx], img2, thetaIdx, m_minRho2, m_maxRho2, m_mapX2, m_mapY2, m_inverseMapX2, m_inverseMapY2);
     }
 }
 
@@ -1062,6 +1061,39 @@ void PolarCalibration::getRectifiedImages(const cv::Mat& img1, const cv::Mat& im
     
     cv::remap(img1, rectified1, m_mapX1, m_mapY1, interpolation, cv::BORDER_TRANSPARENT);
     cv::remap(img2, rectified2, m_mapX2, m_mapY2, interpolation, cv::BORDER_TRANSPARENT);
+}
+
+void PolarCalibration::rectifyAndStoreImages(const cv::Mat& img1, const cv::Mat& img2, int interpolation)
+{
+    getRectifiedImages(img1, img2, m_rectified1, m_rectified2, interpolation);
+}
+
+bool PolarCalibration::getStoredRectifiedImages(cv::Mat& img1, cv::Mat& img2)
+{
+    img1 = m_rectified1;
+    img2 = m_rectified2;
+}
+
+void PolarCalibration::getMaps(cv::Mat& mapX, cv::Mat& mapY, const uint8_t& whichImage)
+{
+    if (whichImage == 1) {
+        mapX = m_mapX1;
+        mapY = m_mapY1;
+    } else if (whichImage == 2) {
+        mapX = m_mapX2;
+        mapY = m_mapY2;
+    }
+}
+
+void PolarCalibration::getInverseMaps(cv::Mat& mapX, cv::Mat& mapY, const uint8_t& whichImage)
+{
+    if (whichImage == 1) {
+        mapX = m_inverseMapX1;
+        mapY = m_inverseMapY1;
+    } else if (whichImage == 2) {
+        mapX = m_inverseMapX2;
+        mapY = m_inverseMapY2;
+    }
 }
 
 void PolarCalibration::transformPoints(const vector< cv::Point2d >& points, 
@@ -1089,5 +1121,106 @@ void PolarCalibration::transformPoints(const vector< cv::Point2d >& points,
 //     exit(0);
 }
 
+/*inline
+bool PolarCalibration::isVectorBetweenVectors(const cv::Vec3f& v, const cv::Vec3f& v1, const cv::Vec3f& v2)
+{   
+    if (SIGN(v1.cross(v)[2]) == SIGN(v.cross(v2)[2])) {
+        if (fabs(acos(v1.dot(v2))) > fabs(acos(v1.dot(v)))) {
+            return true;
+        }
+    }
+    return false;
+}
 
+bool PolarCalibration::findThetaIdx(const cv::Point2d& epipole, const cv::Point2d &queryPoint, 
+                                    const vector<cv::Point2d> & thetaPoints, 
+                                    const uint32_t& minIdx, const uint32_t& maxIdx, double & thetaIdx)
+{
+//     cout << "queryPoint " << queryPoint << endl;
+//     cout << "minPoint " << thetaPoints[minIdx] << endl;
+//     cout << "maxPoint " << thetaPoints[maxIdx] << endl;
+//     cout << "m_b1 " << m_b1 << endl;
+//     cout << "m_e1 " << m_e1 << endl;
+    
+    cv::Vec3f v(queryPoint.x - epipole.x, queryPoint.y - epipole.y, 0.0);
+    cv::Vec3f v1(thetaPoints[minIdx].x - epipole.x, thetaPoints[minIdx].y - epipole.y, 0.0);
+    cv::Vec3f v2(thetaPoints[maxIdx].x - epipole.x, thetaPoints[maxIdx].y - epipole.y, 0.0);
+    
+    v /= cv::norm(v);
+    v1 /= cv::norm(v1);
+    v2 /= cv::norm(v2);
+    
+    if (! isVectorBetweenVectors(v, v1, v2))
+        return false;
+    
+    if (maxIdx - minIdx == 1) {
+        const double & dist1 = cv::norm(queryPoint - thetaPoints[minIdx]);
+        const double & dist2 = cv::norm(queryPoint - thetaPoints[maxIdx]);
+        
+//         cout << dist1 << endl;
+//         cout << dist2 << endl;
+//         cout << dist1 << endl;
+        
+        thetaIdx = minIdx + (dist1 / (dist1 + dist2));
+//         if (dist1 < dist2) 
+//             thetaIdx = minIdx;
+//         else
+//             thetaIdx = maxIdx;
+        
+        return true;
+    }
+    
+    const uint32_t minIdx1 = minIdx;
+    const uint32_t maxIdx1 = minIdx + ((maxIdx - minIdx + 1) / 2);
+    const uint32_t minIdx2 = maxIdx1;
+    const uint32_t maxIdx2 = maxIdx;
+    
+    if (findThetaIdx(epipole, queryPoint, thetaPoints, minIdx1, maxIdx1, thetaIdx))
+        return true;
+    if (findThetaIdx(epipole, queryPoint, thetaPoints, minIdx2, maxIdx2, thetaIdx))
+        return true;
+}
 
+bool PolarCalibration::transformPoints(const cv::Mat& Fin, const vector< cv::Point2f >& ctrlPoints1, 
+                                       const vector< cv::Point2f >& ctrlPoints2, const cv::Size & imgDimensions, 
+                                       const vector< cv::Point2d >& points1, const vector< cv::Point2d >& points2, 
+                                       vector< cv::Point2d >& transformedPoints1, vector< cv::Point2d >& transformedPoints2)
+{
+    cv::Point2d epipole1, epipole2;
+    const cv::Mat img1(2, 2, CV_8UC3), img2(2, 2, CV_8UC3);
+    cv::Mat F = Fin;
+    if (! findFundamentalMat(img1, img2, F, ctrlPoints1, ctrlPoints2, epipole1, epipole2, FMAT_METHOD_OFLOW))
+        return false;
+    
+//     Determine common region
+    vector<cv::Vec3f> initialEpilines, finalEpilines;
+    vector<cv::Point2f> epipoles(2);
+    epipoles[0] = epipole1;
+    epipoles[1] = epipole2;
+    determineCommonRegion(epipoles, imgDimensions, F);
+    
+    getTransformationPoints(img1.size(), epipole1, epipole2, F);
+    
+    transformedPoints1.reserve(points1.size());
+    transformedPoints2.reserve(points2.size());
+    
+    for (uint32_t i = 0; i < points1.size(); i++) {
+        double thetaIdx;
+        if (! findThetaIdx(epipole1, points1[i], m_thetaPoints1, 0, m_thetaPoints1.size() / 2, thetaIdx))
+            findThetaIdx(epipole1, points1[i], m_thetaPoints1, m_thetaPoints1.size() / 2, m_thetaPoints1.size() - 1, thetaIdx);
+        uint32_t rhoIdx = round(cv::norm(epipole1 - points1[i]) - m_minRho1);
+        
+        cout << "p " << points1[i] << endl;
+        cout << "e " << epipole1 << endl;
+        cout << "d " << cv::norm(epipole1 - points1[i]) << endl;
+        cout << "r " << m_minRho1 << endl;
+        
+//         exit(0);
+        
+//         transformedPoints1.push_back(cv::Point2d(rhoIdx, thetaIdx + 1));
+        transformedPoints1.push_back(cv::Point2d(cv::norm(epipole1 - points1[i]) - m_minRho1, thetaIdx + 1));
+    }
+    
+    return true;
+    
+}*/
