@@ -1,0 +1,8 @@
+set (POLAR_CALIBRATION_INCLUDE_DIRS 
+  ${POLAR_CALIBRATION_PATH}/src
+)
+
+set (POLAR_CALIBRATION_CPP_FILES
+  ${POLAR_CALIBRATION_PATH}/src/polarcalibration.cpp
+  ${POLAR_CALIBRATION_PATH}/src/visualizePolarCalibration.cpp
+)
